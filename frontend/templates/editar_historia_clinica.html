@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editar Historia Clínica</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #f4f8fb;
+      font-family: "Segoe UI", sans-serif;
+    }
+    header {
+      background-color: #0078d7;
+      color: white;
+      text-align: center;
+      padding: 1rem 0;
+      font-weight: bold;
+      font-size: 1.5rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .card {
+      background-color: #ffffff;
+      border-radius: 15px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      margin-top: 2rem;
+      padding: 2rem;
+    }
+    .section-title {
+      background: #0078d7;
+      color: white;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      font-weight: bold;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    textarea { resize: none; }
+  </style>
+</head>
+
+<body>
+
+<header>🏥 EDITAR HISTORIA CLÍNICA DEL PACIENTE</header>
+
+<div class="container">
+  <div class="card">
+
+    <!-- ENCABEZADO CON JINJA -->
+    <div class="text-center mb-4">
+      <h3 class="fw-bold text-primary">
+        {{ paciente.primerNombre }} {{ paciente.primerApellido }} {{ paciente.segundoApellido }}
+      </h3>
+      <h5 class="text-muted">ID Paciente: <span id="idPaciente">{{ paciente.id }}</span></h5>
+    </div>
+
+    <!-- ============================ -->
+    <!--          FORMULARIOS         -->
+    <!-- ============================ -->
+
+    <!-- CONDICIÓN MÉDICA -->
+    <div class="section-title">🩺 Condición Médica</div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label>Condición:</label>
+        <input type="text" id="condicion" class="form-control" placeholder="Ejemplo: Hipertensión arterial">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label>Estado clínico:</label>
+        <select id="estadoClinico" class="form-select">
+          <option value="">Seleccione estado</option>
+          <option>Activo</option>
+          <option>Inactivo</option>
+          <option>Resuelto</option>
+          <option>En emisión</option>
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label>Fecha de inicio:</label>
+        <input type="date" id="fechaInicio" class="form-control">
+      </div>
+      <div class="col-md-12 mb-3">
+        <label>Notas adicionales:</label>
+        <textarea id="notas" class="form-control" rows="4" placeholder="Observaciones o información relevante..."></textarea>
+      </div>
+    </div>
+
+    <!-- ENCUENTRO -->
+    <div class="section-title">🧾 Encuentro</div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label>Tipo:</label>
+        <select id="tipoEncuentro" class="form-select">
+          <option value="">Seleccionar tipo</option>
+          <option>Consulta ambulatoria</option>
+          <option>Emergencia</option>
+          <option>Hospitalización</option>
+          <option>Visita domiciliaria</option>
+        </select>
+      </div>
+      <div class="col-md-6 mb-3">
+        <label>Motivo:</label>
+        <input type="text" id="motivo" class="form-control" placeholder="Motivo del encuentro">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label>Fecha y hora de inicio:</label>
+        <input type="datetime-local" id="fechaInicioEncuentro" class="form-control">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label>Fecha y hora de fin:</label>
+        <input type="datetime-local" id="fechaFinEncuentro" class="form-control">
+      </div>
+    </div>
+
+    <!-- MEDICAMENTO -->
+    <div class="section-title">💊 Medicamento</div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label>Nombre:</label>
+        <input type="text" id="medNombre" class="form-control" placeholder="Ejemplo: Losartán">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label>Dosis (mg):</label>
+        <input type="number" id="medDosis" class="form-control" min="1" placeholder="Ej: 50">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label>Frecuencia/día:</label>
+        <input type="number" id="medFrecuencia" class="form-control" min="1" placeholder="Ej: 2">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label>Vía:</label>
+        <input type="text" id="medVia" class="form-control" placeholder="Ej: Oral">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label>Duración (días):</label>
+        <input type="number" id="medDuracion" class="form-control" min="1" placeholder="Ej: 7">
+      </div>
+      <div class="col-md-12 mb-3">
+        <label>Instrucciones especiales:</label>
+        <textarea id="medInstrucciones" class="form-control" rows="4" placeholder="Ej: Tomar después de las comidas..."></textarea>
+      </div>
+    </div>
+
+    <!-- OBSERVACIÓN -->
+    <div class="section-title">📝 Observación</div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label>Descripción:</label>
+        <input type="text" id="obsDescripcion" class="form-control" placeholder="Ejemplo: Presión arterial">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label>Valor:</label>
+        <input type="text" id="obsValor" class="form-control" placeholder="Ej: 120/80">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label>Unidad:</label>
+        <input type="text" id="obsUnidad" class="form-control" placeholder="Ej: mmHg">
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <label>Fecha y hora:</label>
+        <input type="datetime-local" id="obsFechaHora" class="form-control">
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <label>Dispositivo utilizado:</label>
+        <input type="text" id="obsDispositivo" class="form-control" placeholder="Ej: Tensiómetro digital">
+      </div>
+
+      <div class="col-md-12 mb-3">
+        <label>Notas de observación:</label>
+        <textarea id="obsNotas" class="form-control" rows="4" placeholder="Detalles adicionales..."></textarea>
+      </div>
+    </div>
+
+    <!-- BOTONES -->
+    <div class="text-center mt-4">
+      <button class="btn btn-success px-5 py-2" onclick="confirmarGuardar()">
+        💾 Guardar en FHIR
+      </button>
+      <button class="btn btn-danger px-4 py-2 ms-3" onclick="cancelar()">
+        ❌ Cancelar
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL DE CONFIRMACIÓN -->
+<div class="modal fade" id="modalConfirmar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Confirmar Guardado</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <p>¿Desea guardar esta historia clínica en FHIR?</p>
+        <button class="btn btn-success px-4" onclick="guardarEnFhir()">Guardar</button>
+        <button class="btn btn-danger px-4" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ÉXITO -->
+<div class="modal fade" id="modalExito" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Registro Exitoso</h5>
+      </div>
+      <div class="modal-body text-center">
+        <p class="fw-bold">✅ La historia clínica fue guardada correctamente.</p>
+        <p>Redirigiendo al panel del médico...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  const modalConfirmar = new bootstrap.Modal(document.getElementById('modalConfirmar'));
+  const modalExito = new bootstrap.Modal(document.getElementById('modalExito'));
+
+  function confirmarGuardar() {
+    modalConfirmar.show();
+  }
+
+  function guardarEnFhir() {
+    modalConfirmar.hide();
+
+    const datos = {
+      idPaciente: "{{ paciente.id }}",
+
+      condicionMedica: {
+        condicion: document.getElementById('condicion').value,
+        estadoClinico: document.getElementById('estadoClinico').value,
+        fechaInicio: document.getElementById('fechaInicio').value,
+        notas: document.getElementById('notas').value
+      },
+
+      encuentro: {
+        tipo: document.getElementById('tipoEncuentro').value,
+        motivo: document.getElementById('motivo').value,
+        fechaInicio: document.getElementById('fechaInicioEncuentro').value,
+        fechaFin: document.getElementById('fechaFinEncuentro').value
+      },
+
+      medicamento: {
+        nombre: document.getElementById('medNombre').value,
+        dosisMg: document.getElementById('medDosis').value,
+        frecuenciaDia: document.getElementById('medFrecuencia').value,
+        via: document.getElementById('medVia').value,
+        duracionDias: document.getElementById('medDuracion').value,
+        instrucciones: document.getElementById('medInstrucciones').value
+      },
+
+      observacion: {
+        descripcion: document.getElementById('obsDescripcion').value,
+        valor: document.getElementById('obsValor').value,
+        unidad: document.getElementById('obsUnidad').value,
+        fechaHora: document.getElementById('obsFechaHora').value,
+        dispositivo: document.getElementById('obsDispositivo').value,
+        notas: document.getElementById('obsNotas').value
+      }
+    };
+
+    fetch("/guardar_historia_clinica", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(datos)
+    })
+    .then(res => res.json())
+    .then(r => {
+      modalExito.show();
+
+      setTimeout(() => {
+        window.location.href = "/vista_medico";
+      }, 2500);
+    })
+    .catch(err => console.error("Error al guardar historia:", err));
+  }
+
+  function cancelar() {
+    window.location.href = "/vista_medico";
+  }
+</script>
+
+</body>
+</html>

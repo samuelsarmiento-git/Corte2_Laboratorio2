@@ -1,0 +1,29 @@
+[
+    {
+        "id": 77771,
+        "primerNombre": "Andres",
+        "segundoNombre": "Mauricio",
+        "primerApellido": "Vergara",
+        "segundoApellido": "Hernández",
+        "tipoDoc": "Cédula de ciudadanía",
+        "numDoc": "0123456789",
+        "fechaNacimiento": "2005-02-11",
+        "edad": "20",
+        "sexo": "Masculino",
+        "grupoSang": "B",
+        "rh": "+",
+        "estadoCivil": "Viudo(a)",
+        "direccion": "las colinas",
+        "departamento": "Sucre",
+        "municipio": "Sincelejo",
+        "telefono": "1234567890",
+        "correo": "andresmauricio@gmail.com",
+        "ocupacion": "Profesional",
+        "eps": "EPS Sanitas",
+        "regimen": "Subsidiado",
+        "tipoUsuario": "Beneficiario",
+        "contactoEmergencia": "3201235478",
+        "pais": "Colombia",
+        "medico": "medico prueba"
+    }
+]

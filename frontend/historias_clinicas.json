@@ -1,0 +1,33 @@
+[
+    {
+        "idPaciente": "77771",
+        "condicionMedica": {
+            "condicion": "",
+            "estadoClinico": "",
+            "fechaInicio": "",
+            "notas": ""
+        },
+        "encuentro": {
+            "tipo": "Consulta ambulatoria",
+            "motivo": "alcohol incontrolado",
+            "fechaInicio": "",
+            "fechaFin": ""
+        },
+        "medicamento": {
+            "nombre": "no sé",
+            "dosisMg": "7",
+            "frecuenciaDia": "5",
+            "via": "rectal",
+            "duracionDias": "4",
+            "instrucciones": ""
+        },
+        "observacion": {
+            "descripcion": "pastillas",
+            "valor": "12000",
+            "unidad": "2",
+            "fechaHora": "",
+            "dispositivo": "lupa",
+            "notas": ""
+        }
+    }
+]

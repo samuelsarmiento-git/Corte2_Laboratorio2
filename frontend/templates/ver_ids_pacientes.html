@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDs de Pacientes</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body { background:#eef3f7; font-family:"Segoe UI"; }
+        header { background:#0078d7; color:white; padding:1rem; text-align:center; font-weight:700; }
+        .card { padding:1.5rem; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.15); }
+    </style>
+</head>
+<body>
+
+<header>📋 LISTADO DE PACIENTES REGISTRADOS</header>
+
+<div class="container mt-4">
+
+    <div class="card">
+
+        <h4 class="text-center mb-3">👨‍⚕️ Médico: <b>{{ usuario }}</b></h4>
+
+        {% if pacientes|length == 0 %}
+            <p class="text-center text-danger fw-bold">Aún no ha registrado pacientes.</p>
+        {% else %}
+
+        <table class="table table-bordered mt-3">
+            <thead class="table-primary">
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre completo</th>
+                    <th>Ver historia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pacientes %}
+                <tr>
+                    <td>{{ p.id }}</td>
+                    <td>{{ p.primerNombre }} {{ p.primerApellido }} {{ p.segundoApellido }}</td>
+                    <td>
+                        <a href="/ver_historia_clinica?id={{ p.id }}" class="btn btn-sm btn-info text-white">
+                            📄 Ver
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% endif %}
+
+        <a href="{{ url_for('vista_medico') }}" class="btn btn-secondary mt-3">⬅ Volver</a>
+
+    </div>
+
+</div>
+
+</body>
+</html>

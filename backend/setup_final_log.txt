@@ -1,0 +1,217 @@
+[0;32m========================================[0m
+[0;32m  Historia Clínica Distribuida - Setup[0m
+[0;32m  Semana 1: Infraestructura + Middleware[0m
+[0;32m========================================[0m
+
+[1;33mEjecutando desde: raíz del repositorio[0m
+
+[1;33m[PASO 1][0m Verificando requisitos previos...
+[0;32m✓[0m Minikube instalado
+[0;32m✓[0m kubectl instalado
+[0;32m✓[0m Docker instalado
+[0;32m✓[0m Python3 instalado
+
+[1;33m[PASO 2][0m Iniciando Minikube...
+[0;32m✓[0m Minikube ya está corriendo
+
+[1;33m[PASO 3][0m Creando namespace...
+namespace/citus created
+[0;32m✓[0m Namespace 'citus' creado
+
+[1;33m[PASO 4][0m Desplegando Citus...
+service/citus-coordinator created
+deployment.apps/citus-coordinator created
+service/citus-worker created
+deployment.apps/citus-worker created
+Esperando a que los pods estén listos...
+pod/citus-coordinator-769557dd4d-qqqhr condition met
+pod/citus-worker-77b4d587d4-7gspt condition met
+pod/citus-worker-77b4d587d4-7ngzq condition met
+[0;32m✓[0m Citus desplegado correctamente
+
+[1;33m[PASO 5][0m Configurando base de datos...
+Pod coordinador: citus-coordinator-769557dd4d-qqqhr
+Esperando a que PostgreSQL esté listo...
+
+[0;34m>>> Creando base de datos historiaclinica...[0m
+NOTICE:  Citus partially supports CREATE DATABASE for distributed databases
+DETAIL:  Citus does not propagate CREATE DATABASE command to workers
+HINT:  You can manually create a database and its extensions on workers.
+CREATE DATABASE
+[0;32m✓[0m BD verificada
+
+[0;34m>>> Creando extensiones...[0m
+CREATE EXTENSION
+CREATE EXTENSION
+[0;32m✓[0m Extensiones creadas
+
+[0;34m>>> Creando tabla pacientes (método alternativo)...[0m
+You are now connected to database "historiaclinica" as user "postgres".
+DROP TABLE
+psql:/tmp/create_table.sql:3: NOTICE:  table "pacientes" does not exist, skipping
+CREATE TABLE
+[0;32m✓[0m Tabla creada
+
+[0;34m>>> Verificando tabla...[0m
+                                           Table "public.pacientes"
+      Column      |            Type             | Collation | Nullable |                Default                
+------------------+-----------------------------+-----------+----------+---------------------------------------
+ id               | integer                     |           | not null | nextval('pacientes_id_seq'::regclass)
+ documento_id     | character varying(20)       |           | not null | 
+ nombre           | character varying(100)      |           | not null | 
+ apellido         | character varying(100)      |           |          | 
+ fecha_nacimiento | date                        |           |          | 
+ telefono         | character varying(20)       |           |          | 
+ direccion        | text                        |           |          | 
+ correo           | character varying(100)      |           |          | 
+ genero           | character varying(10)       |           |          | 
+ tipo_sangre      | character varying(5)        |           |          | 
+ fecha_registro   | timestamp without time zone |           |          | now()
+Indexes:
+    "pacientes_pkey" PRIMARY KEY, btree (documento_id, id)
+
+
+[0;34m>>> Distribuyendo tabla...[0m
+ create_distributed_table 
+--------------------------
+ 
+(1 row)
+
+[0;32m✓[0m Tabla distribuida
+
+[0;34m>>> Verificando distribución...[0m
+ table_name | citus_table_type | distribution_column | colocation_id | table_size | shard_count | table_owner | access_method 
+------------+------------------+---------------------+---------------+------------+-------------+-------------+---------------
+ pacientes  | distributed      | documento_id        |             1 | 512 kB     |          32 | postgres    | heap
+(1 row)
+
+
+[0;34m>>> Insertando datos...[0m
+You are now connected to database "historiaclinica" as user "postgres".
+INSERT 0 3
+[0;32m✓[0m Datos insertados
+
+[0;34m>>> Verificando datos...[0m
+ total 
+-------
+     3
+(1 row)
+
+ id | documento_id | nombre | apellido 
+----+--------------+--------+----------
+  2 | 67890        | María  | Gómez
+  3 | 11111        | Pedro  | López
+  1 | 12345        | Juan   | Pérez
+(3 rows)
+
+
+[1;33m[PASO 6][0m Construyendo imagen Docker...
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 409B 0.0s done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/python:3.10-slim
+#2 DONE 3.6s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 160B done
+#3 DONE 0.1s
+
+#4 [1/5] FROM docker.io/library/python:3.10-slim@sha256:975a1e200a16719060d391eea4ac66ee067d709cc22a32f4ca4737731eae36c0
+#4 resolve docker.io/library/python:3.10-slim@sha256:975a1e200a16719060d391eea4ac66ee067d709cc22a32f4ca4737731eae36c0
+#4 ...
+
+#5 [internal] load build context
+#5 transferring context: 672B 0.0s done
+#5 DONE 0.2s
+
+#4 [1/5] FROM docker.io/library/python:3.10-slim@sha256:975a1e200a16719060d391eea4ac66ee067d709cc22a32f4ca4737731eae36c0
+#4 resolve docker.io/library/python:3.10-slim@sha256:975a1e200a16719060d391eea4ac66ee067d709cc22a32f4ca4737731eae36c0 0.2s done
+#4 DONE 0.2s
+
+#6 [2/5] WORKDIR /app
+#6 CACHED
+
+#7 [3/5] COPY requirements.txt /app/requirements.txt
+#7 CACHED
+
+#8 [4/5] RUN pip install --no-cache-dir -r /app/requirements.txt
+#8 CACHED
+
+#9 [5/5] COPY app /app/app
+#9 CACHED
+
+#10 exporting to image
+#10 exporting layers done
+#10 writing image sha256:6f4688c1db4aff3720834eaa15b6a0bfc073d49c3fdcb040ba89e7e9dcf401fd done
+#10 naming to docker.io/library/middleware-citus:1.0 done
+#10 DONE 0.0s
+[0;32m✓[0m Imagen construida
+[0;32m✓[0m Imagen cargada en Minikube
+
+[1;33m[PASO 7][0m Creando secrets...
+secret/app-secrets created
+[0;32m✓[0m Secrets creados
+
+[1;33m[PASO 8][0m Desplegando middleware...
+deployment.apps/middleware-citus created
+service/middleware-citus-service created
+pod/middleware-citus-7b8c5fd77b-c47kn condition met
+[0;32m✓[0m Middleware desplegado
+
+[1;33m[PASO 9][0m Verificación final...
+
+[1;33mPods:[0m
+NAME                                 READY   STATUS    RESTARTS   AGE
+citus-coordinator-769557dd4d-qqqhr   1/1     Running   0          76s
+citus-worker-77b4d587d4-7gspt        1/1     Running   0          76s
+citus-worker-77b4d587d4-7ngzq        1/1     Running   0          75s
+middleware-citus-7b8c5fd77b-c47kn    1/1     Running   0          16s
+
+[1;33mServicios:[0m
+NAME                       TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+citus-coordinator          ClusterIP   10.101.60.209   <none>        5432/TCP   76s
+citus-worker               ClusterIP   10.106.133.75   <none>        5432/TCP   76s
+middleware-citus-service   ClusterIP   10.96.195.17    <none>        8000/TCP   16s
+
+[1;33mBase de datos:[0m
+  table_name   
+---------------
+ pacientes
+ citus_tables
+ citus_schemas
+(3 rows)
+
+ table_name | citus_table_type | distribution_column | colocation_id | table_size | shard_count | table_owner | access_method 
+------------+------------------+---------------------+---------------+------------+-------------+-------------+---------------
+ pacientes  | distributed      | documento_id        |             1 | 544 kB     |          32 | postgres    | heap
+(1 row)
+
+ total_pacientes 
+-----------------
+               3
+(1 row)
+
+
+[1;33m[PASO 10][0m ¡Instalación completa!
+
+[0;32m========================================[0m
+[0;32m  ✓ TODO LISTO[0m
+[0;32m========================================[0m
+
+[1;33mPara acceder a la API:[0m
+  kubectl port-forward -n citus service/middleware-citus-service 8000:8000 &
+
+[1;33mProbar:[0m
+  curl http://localhost:8000/health
+
+[1;33mToken:[0m
+  curl -X POST http://localhost:8000/token -H "Content-Type: application/json" -d '{"username":"admin","password":"admin"}'
+
+[1;33mPruebas:[0m
+  ./project/test_api.sh
+
+[0;32m¡Sistema operativo![0m
+

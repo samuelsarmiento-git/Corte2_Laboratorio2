@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.log
+*.odt
+.~lock.*
+.env
+venv/
+.git
+.gitignore
+infra/
+docs/
+ComandosUsadosYlog.odt

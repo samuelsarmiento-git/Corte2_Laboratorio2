@@ -1,0 +1,29 @@
+[
+    {
+        "usuario": "medico prueba",
+        "contraseña": "12345",
+        "rol": "medico",
+        "nombres": "Alexander",
+        "apellidos": "García",
+        "tipo_profesional": "Médico general",
+        "telefono": "3204562345",
+        "email": "prueba_medico@gmail.com",
+        "tipo_doc": "Cédula de ciudadanía",
+        "num_doc": "1189533727",
+        "tarjeta": "11472348596"
+    },
+    
+    {
+        "usuario": "samuel medico",
+        "contraseña": "matias",
+        "rol": "medico",
+        "nombres": "Samuel",
+        "apellidos": "Sarmiento",
+        "tipoProfesional": "General",
+        "telefono": "3012377599",
+        "correo": "samuel@gmail.com",
+        "tipoID": "Cédula",
+        "numID": "1193077296",
+        "tarjetaProfesional": "1142103658"
+    }
+]
