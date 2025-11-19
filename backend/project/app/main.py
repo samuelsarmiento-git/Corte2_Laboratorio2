@@ -1,303 +1,528 @@
-# project/app/main.py - VERSIÓN FINAL SEMANA 1
+# backend/project/app/main.py
+"""
+API Principal - Sistema de Historia Clínica Distribuida
+VERSIÓN CORREGIDA - Fixes para listar, buscar y exportar PDF
+"""
+
 import os
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.database import get_db_connection
-from app.models import Paciente
-from app.schemas import AuthRequest, PacienteResponse
-from app.auth import generar_jwt
+from datetime import timedelta, datetime
+from typing import List, Optional
+from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi.responses import FileResponse, StreamingResponse
 from psycopg2.extras import RealDictCursor
-import jwt
-from dotenv import load_dotenv
+import io
 
-load_dotenv(override=False)
-
-# Configurar esquema de seguridad para Swagger
-security = HTTPBearer(
-    scheme_name="JWT Bearer Token",
-    description="Ingresa el token JWT en formato: Bearer <token>"
+from app.database import get_db_connection
+from app.models import (
+    Usuario, UsuarioCreate, UsuarioLogin, TokenResponse,
+    PacienteCreate, PacienteUpdate, PacienteResponse, PacienteResumen,
+    RolEnum
+)
+from app.auth import (
+    authenticate_user, create_access_token, get_token_expiration,
+    get_current_active_user, require_role, require_admin,
+    require_medico, require_admisionista, require_staff,
+    user_can_access_patient
 )
 
+# ==================== CONFIGURACIÓN APP ====================
+
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(
-    title="🏥 Historia Clínica Distribuida - API",
+    title="🏥 Sistema de Historia Clínica Distribuida",
     description="""
-    ## Sistema de Gestión de Historias Clínicas
+    ## Sistema Completo de Gestión de Historias Clínicas Electrónicas
 
-    API REST para gestión de historias clínicas con base de datos distribuida (Citus).
+    ### 🔐 Sistema de Roles
 
-    ### 🔐 Autenticación
+    El sistema cuenta con 5 roles diferenciados:
 
-    Esta API utiliza tokens JWT para autenticación. Para usar los endpoints protegidos:
+    - **👨‍⚕️ Médico**: Acceso completo a historias clínicas, puede crear y modificar
+    - **📋 Admisionista**: Registra nuevos pacientes y actualiza datos básicos
+    - **🧪 Resultados**: Ingresa resultados de exámenes y procedimientos
+    - **🙍 Paciente**: Solo puede ver su propia historia clínica
+    - **👑 Admin**: Acceso total al sistema, gestión de usuarios
 
-    1. **Obtener Token:** Usa el endpoint `POST /token` con credenciales válidas
-    2. **Configurar Autorización:**
-       - Click en el botón **🔓 Authorize** (arriba a la derecha)
-       - Ingresa: `Bearer [tu_token]` (incluye la palabra "Bearer" y un espacio)
-       - Click **Authorize**
-    3. **Usar Endpoints:** Ahora puedes acceder a todos los endpoints protegidos
+    ### 🚀 Características
 
-    ### 📝 Credenciales de Prueba
+    - ✅ 57 campos de historia clínica completa
+    - ✅ Autenticación con base de datos (bcrypt)
+    - ✅ Control de acceso por roles
+    - ✅ CRUD completo de pacientes
+    - ✅ Exportación a PDF
+    - ✅ Base de datos distribuida con Citus (32 shards)
 
-    - **Username:** `admin`
-    - **Password:** `admin`
+    ### 📝 Usuarios de Prueba
 
-    ### 🚀 Datos de Prueba
+    Todos con password: `password123`
 
-    El sistema incluye 3 pacientes de prueba:
-    - ID 1: Juan Pérez (documento: 12345)
-    - ID 2: María Gómez (documento: 67890)
-    - ID 3: Pedro López (documento: 11111)
-
-    ### 🏗️ Arquitectura
-
-    - **Backend:** FastAPI + Python 3.10
-    - **Base de Datos:** PostgreSQL con Citus (distribuida)
-    - **Autenticación:** JWT (JSON Web Tokens)
-    - **Despliegue:** Kubernetes (Minikube)
+    | Usuario | Rol | Descripción |
+    |---------|-----|-------------|
+    | `admin` | Admin | Administrador del sistema |
+    | `dr_rodriguez` | Médico | Dr. Carlos Rodríguez |
+    | `dra_martinez` | Médico | Dra. Ana Martínez |
+    | `admisionista1` | Admisionista | María González |
+    | `resultados1` | Resultados | Pedro López |
+    | `paciente_juan` | Paciente | Juan Pérez (doc: 12345) |
+    | `paciente_maria` | Paciente | María Gómez (doc: 67890) |
 
     ### 📚 Documentación
 
-    - **Swagger UI:** `/docs` (esta página)
-    - **ReDoc:** `/redoc`
-    - **OpenAPI Schema:** `/openapi.json`
+    - **Swagger UI**: `/docs` (esta página)
+    - **ReDoc**: `/redoc`
+    - **OpenAPI**: `/openapi.json`
     """,
-    version="1.0.0",
+    version="2.0.0",
     contact={
         "name": "Equipo de Desarrollo",
         "email": "support@historiaclinica.com"
-    },
-    license_info={
-        "name": "Proyecto Académico"
     }
 )
+
+# ==================== CONFIGURACIÓN CORS ====================
+origins = [
+    "http://localhost",
+    "http://localhost:5000",
+    "http://127.0.0.1",
+    "http://127.0.0.1:5000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 
 # ==================== ENDPOINTS PÚBLICOS ====================
 
 @app.get(
     "/",
     tags=["Sistema"],
-    summary="🏠 Página de inicio",
-    response_description="Información general de la API"
+    summary="🏠 Información del sistema"
 )
-def read_root():
-    """
-    ## Endpoint Raíz
-
-    Proporciona información general sobre la API y sus endpoints disponibles.
-
-    **No requiere autenticación** ✅
-
-    ### Respuesta
-    Retorna un objeto JSON con:
-    - Mensaje de bienvenida
-    - Versión de la API
-    - Estado operacional
-    - Enlaces a documentación
-    - Lista de endpoints principales
-    """
+def root():
+    """Información general de la API"""
     return {
-        "message": "Bienvenido a la API de Historia Clínica Distribuida",
-        "version": "1.0.0",
-        "status": "operational",
-        "documentation": {
-            "swagger": "http://localhost:8000/docs",
-            "redoc": "http://localhost:8000/redoc",
-            "openapi": "http://localhost:8000/openapi.json"
-        },
-        "endpoints": {
-            "authentication": "/token",
-            "health_check": "/health",
-            "get_patient": "/paciente/{id}",
-            "list_patients": "/pacientes"
-        },
-        "database": {
-            "type": "PostgreSQL + Citus",
-            "distribution": "documento_id",
-            "shards": 32
+        "nombre": "Sistema de Historia Clínica Distribuida",
+        "version": "2.0.0",
+        "estado": "operativo",
+        "características": [
+            "57 campos de historia clínica",
+            "5 roles de usuario",
+            "Autenticación con BD",
+            "CRUD completo",
+            "Exportación PDF",
+            "Base de datos distribuida"
+        ],
+        "roles_disponibles": ["admin", "medico", "admisionista", "resultados", "paciente"],
+        "documentacion": {
+            "swagger": "/docs",
+            "redoc": "/redoc",
+            "openapi": "/openapi.json"
         }
     }
+
 
 @app.get(
     "/health",
     tags=["Sistema"],
-    summary="🏥 Verificación de salud",
-    response_description="Estado del sistema y conexión a BD"
+    summary="🏥 Estado del sistema"
 )
 def health_check():
     """
-    ## Health Check
-
-    Verifica el estado de la API y la conexión con la base de datos.
-
-    **No requiere autenticación** ✅
-
-    ### Verificaciones
-    - ✅ API operativa
-    - ✅ Conexión a base de datos
-
-    ### Códigos de Respuesta
-    - **200:** Sistema saludable
-    - **503:** Error de conexión a BD
-
-    ### Ejemplo de Respuesta Exitosa
-    ```json
-    {
-      "status": "healthy",
-      "database": "connected"
-    }
-    ```
+    Verifica el estado de la API y la base de datos.
+    Retorna información detallada de conectividad.
     """
+    from datetime import datetime
+
+    health_status = {
+        "timestamp": datetime.now().isoformat(),
+        "api": "operativa",
+        "base_datos": {
+            "estado": "desconocido",
+            "detalles": None,
+            "error": None
+        },
+        "configuracion": {
+            "host": os.getenv("POSTGRES_HOST", "localhost"),
+            "port": os.getenv("POSTGRES_PORT", "5432"),
+            "database": os.getenv("POSTGRES_DB", "historiaclinica")
+        }
+    }
+
+    # Intentar conexión a base de datos
+    conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT 1")
+
+        # Test 1: Verificar conexión
+        cur.execute("SELECT 1 as test")
+        test_result = cur.fetchone()
+
+        # Test 2: Verificar versión
+        cur.execute("SELECT version()")
+        version_result = cur.fetchone()
+
+        # Test 3: Verificar tablas
+        cur.execute("""
+            SELECT COUNT(*) as count FROM information_schema.tables
+            WHERE table_schema = 'public'
+            AND table_name IN ('usuarios', 'pacientes')
+        """)
+        tables_result = cur.fetchone()
+        tables_count = tables_result['count']
+
+        # Test 4: Verificar distribución Citus
+        cur.execute("""
+            SELECT COUNT(*) as count
+            FROM citus_tables
+            WHERE table_name::text = 'pacientes'
+        """)
+        citus_result = cur.fetchone()
+        distributed = citus_result['count'] > 0
+
+        # Test 5: Contar registros
+        cur.execute("SELECT COUNT(*) as count FROM public.usuarios")
+        users_count = cur.fetchone()['count']
+
+        cur.execute("SELECT COUNT(*) as count FROM public.pacientes")
+        patients_count = cur.fetchone()['count']
+
         cur.close()
-        conn.close()
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "timestamp": "2025-11-05T12:00:00Z"
+
+        health_status["base_datos"] = {
+            "estado": "conectada",
+            "version": version_result['version'][:50] + "...",
+            "tablas_requeridas": tables_count == 2,
+            "distribucion_citus": distributed,
+            "datos": {
+                "usuarios": users_count,
+                "pacientes": patients_count
+            },
+            "detalles": "Todas las verificaciones pasaron exitosamente",
+            "error": None
         }
+
+        # Determinar estado general
+        if tables_count == 2 and distributed:
+            health_status["estado"] = "saludable"
+            status_code = 200
+        else:
+            health_status["estado"] = "degradado"
+            health_status["advertencias"] = []
+            if tables_count != 2:
+                health_status["advertencias"].append("Faltan tablas requeridas")
+            if not distributed:
+                health_status["advertencias"].append("Tabla pacientes no está distribuida")
+            status_code = 200
+
+    except RuntimeError as e:
+        # Error de conexión detallado
+        health_status["base_datos"] = {
+            "estado": "error_conexion",
+            "detalles": str(e),
+            "error": "No se pudo establecer conexión con PostgreSQL"
+        }
+        health_status["estado"] = "no_saludable"
+        status_code = 503
+
     except Exception as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Database connection failed: {str(e)}"
-        )
+        # Error inesperado
+        health_status["base_datos"] = {
+            "estado": "error",
+            "detalles": str(e),
+            "error": f"Error inesperado: {type(e).__name__}"
+        }
+        health_status["estado"] = "no_saludable"
+        status_code = 503
+
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except:
+                pass
+
+    # Retornar respuesta con código apropiado
+    if status_code == 503:
+        raise HTTPException(status_code=503, detail=health_status)
+
+    return health_status
+
+# ==================== AUTENTICACIÓN ====================
 
 @app.post(
     "/token",
-    tags=["Autenticación"],
-    summary="🔑 Obtener Token JWT",
-    response_description="Token de acceso generado"
+    response_model=TokenResponse,
+    tags=["🔐 Autenticación"],
+    summary="Iniciar sesión"
 )
-def login_for_token(auth: AuthRequest):
+def login(credentials: UsuarioLogin):
     """
-    ## Generar Token de Autenticación
+    Autenticación de usuarios contra la base de datos.
 
-    Genera un token JWT válido por 30 minutos.
+    **Usuarios de prueba** (password: `password123`):
+    - `admin` - Administrador
+    - `dr_rodriguez` - Médico
+    - `dra_martinez` - Médico
+    - `admisionista1` - Admisionista
+    - `resultados1` - Resultados
+    - `paciente_juan` - Paciente (doc: 12345)
+    - `paciente_maria` - Paciente (doc: 67890)
 
-    **No requiere autenticación** ✅
-
-    ### Credenciales de Prueba
-    ```json
-    {
-      "username": "admin",
-      "password": "admin"
-    }
-    ```
-
-    ### Ejemplo de Request
-    ```bash
-    curl -X POST http://localhost:8000/token \\
-      -H "Content-Type: application/json" \\
-      -d '{"username":"admin","password":"admin"}'
-    ```
-
-    ### Respuesta Exitosa
-    ```json
-    {
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "token_type": "bearer"
-    }
-    ```
-
-    ### Cómo Usar el Token
-
-    1. **Copiar** el `access_token` de la respuesta
-    2. **Click** en el botón 🔓 **Authorize** (arriba)
-    3. **Ingresar:** `Bearer [access_token]`
-    4. **Click** en **Authorize** y luego **Close**
-    5. ¡Listo! Ahora puedes usar todos los endpoints protegidos
-
-    ### Códigos de Respuesta
-    - **200:** Token generado exitosamente
-    - **401:** Credenciales inválidas
-
-    ### Notas
-    - El token expira en 30 minutos
-    - En Semana 2 se validará contra la base de datos
+    **Respuesta exitosa** incluye:
+    - Token JWT válido por 30 minutos
+    - Información del usuario autenticado
     """
-    if auth.username == "admin" and auth.password == "admin":
-        token = generar_jwt({
-            "sub": auth.username,
-            "role": "admin"
-        })
-        return {
-            "access_token": token,
-            "token_type": "bearer",
-            "expires_in": 1800  # 30 minutos en segundos
+    user = authenticate_user(credentials.username, credentials.password)
+
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Credenciales inválidas"
+        )
+
+    # Crear token con información del usuario
+    access_token = create_access_token(
+        data={
+            "sub": user.username,
+            "rol": user.rol,
+            "user_id": user.id
         }
-
-    raise HTTPException(
-        status_code=401,
-        detail="Credenciales inválidas. Usa username: 'admin', password: 'admin'"
     )
 
-# ==================== ENDPOINTS PROTEGIDOS ====================
+    return TokenResponse(
+        access_token=access_token,
+        expires_in=get_token_expiration(),
+        user=user
+    )
+
 
 @app.get(
-    "/paciente/{paciente_id}",
-    response_model=PacienteResponse,
-    tags=["Pacientes"],
-    summary="👤 Obtener Paciente por ID",
-    response_description="Datos completos del paciente"
+    "/me",
+    response_model=Usuario,
+    tags=["🔐 Autenticación"],
+    summary="Información del usuario actual"
 )
-def obtener_paciente(
-    paciente_id: int,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+def get_me(current_user: Usuario = Depends(get_current_active_user)):
+    """
+    Obtiene información del usuario autenticado.
+    Requiere token JWT válido.
+    """
+    return current_user
+
+
+# ==================== GESTIÓN DE USUARIOS (Solo Admin) ====================
+
+@app.post(
+    "/usuarios",
+    response_model=Usuario,
+    tags=["👥 Usuarios"],
+    summary="Crear usuario (Admin)",
+    status_code=201
+)
+def crear_usuario(
+    usuario: UsuarioCreate,
+    current_user: Usuario = Depends(require_admin())
 ):
     """
-    ## Obtener Información de un Paciente
+    Crea un nuevo usuario en el sistema.
 
-    Retorna todos los datos de un paciente específico.
+    **Requiere rol**: Admin
 
-    **Requiere autenticación JWT** 🔒
-
-    ### Parámetros
-    - **paciente_id** (path): ID del paciente (1, 2 o 3 para datos de prueba)
-
-    ### Pacientes de Prueba
-    - `1`: Juan Pérez (documento: 12345)
-    - `2`: María Gómez (documento: 67890)
-    - `3`: Pedro López (documento: 11111)
-
-    ### Ejemplo de Request
-    ```bash
-    curl http://localhost:8000/paciente/1 \\
-      -H "Authorization: Bearer <tu_token>"
-    ```
-
-    ### Respuesta Exitosa
-    ```json
-    {
-      "id": 1,
-      "documento_id": "12345",
-      "nombre": "Juan",
-      "apellido": "Pérez",
-      "fecha_nacimiento": "1995-04-12",
-      "telefono": "3001234567",
-      "direccion": "Calle 123 #45-67",
-      "correo": "juanp@example.com"
-    }
-    ```
-
-    ### Códigos de Respuesta
-    - **200:** Paciente encontrado
-    - **401:** Token inválido o expirado
-    - **404:** Paciente no encontrado
-    - **500:** Error de base de datos
+    La contraseña se hashea automáticamente con bcrypt.
     """
-    # Validar token
-    token = credentials.credentials
-    SECRET_KEY = os.getenv("SECRET_KEY", "20240902734")
-    ALGORITHM = os.getenv("ALGORITHM", "HS256")
-
+    conn = None
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expirado")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Token inválido")
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Verificar que el username no exista
+        cur.execute("SELECT id FROM public.usuarios WHERE username = %s", (usuario.username,))
+        if cur.fetchone():
+            raise HTTPException(status_code=400, detail="El username ya existe")
+
+        # Insertar usuario con contraseña hasheada
+        cur.execute("""
+            INSERT INTO public.usuarios
+            (username, password_hash, rol, nombres, apellidos, documento_vinculado)
+            VALUES (%s, crypt(%s, gen_salt('bf')), %s, %s, %s, %s)
+            RETURNING id, username, rol, nombres, apellidos, documento_vinculado,
+                      activo, fecha_creacion, ultimo_acceso
+        """, (
+            usuario.username,
+            usuario.password,
+            usuario.rol,
+            usuario.nombres,
+            usuario.apellidos,
+            usuario.documento_vinculado
+        ))
+
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+
+        return Usuario(**dict(row))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al crear usuario: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.get(
+    "/usuarios",
+    response_model=List[Usuario],
+    tags=["👥 Usuarios"],
+    summary="Listar usuarios (Admin)"
+)
+def listar_usuarios(
+    current_user: Usuario = Depends(require_admin()),
+    limit: int = Query(50, ge=1, le=100)
+):
+    """
+    Lista todos los usuarios del sistema.
+
+    **Requiere rol**: Admin
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT id, username, rol, nombres, apellidos, documento_vinculado,
+                   activo, fecha_creacion, ultimo_acceso
+            FROM public.usuarios
+            ORDER BY fecha_creacion DESC
+            LIMIT %s
+        """, (limit,))
+
+        rows = cur.fetchall()
+        cur.close()
+
+        return [Usuario(**dict(row)) for row in rows]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al listar usuarios: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
+
+# ==================== CRUD PACIENTES ====================
+
+@app.post(
+    "/pacientes",
+    response_model=PacienteResponse,
+    tags=["👨‍⚕️ Pacientes"],
+    summary="Crear paciente (Admisionista/Médico/Admin)",
+    status_code=201
+)
+def crear_paciente(
+    paciente: PacienteCreate,
+    current_user: Usuario = Depends(require_role(RolEnum.ADMISIONISTA, RolEnum.MEDICO, RolEnum.ADMIN))
+):
+    """
+    Registra un nuevo paciente en el sistema.
+
+    **Requiere rol**: Admisionista, Médico o Admin
+
+    **Campos obligatorios**:
+    - tipo_documento
+    - numero_documento (único)
+    - primer_apellido
+    - primer_nombre
+    - fecha_nacimiento
+    - sexo
+
+    **Campos opcionales**: 57 campos adicionales disponibles
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Verificar que el documento no exista
+        cur.execute(
+            "SELECT id FROM public.pacientes WHERE numero_documento = %s",
+            (paciente.numero_documento,)
+        )
+        if cur.fetchone():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Ya existe un paciente con documento {paciente.numero_documento}"
+            )
+
+        # Construir query dinámicamente
+        fields = []
+        values = []
+        placeholders = []
+
+        for field, value in paciente.dict(exclude_unset=True).items():
+            if value is not None:
+                fields.append(field)
+                values.append(value)
+                placeholders.append("%s")
+
+        query = f"""
+            INSERT INTO public.pacientes ({', '.join(fields)})
+            VALUES ({', '.join(placeholders)})
+            RETURNING *
+        """
+
+        cur.execute(query, values)
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+
+        return PacienteResponse.from_db(dict(row))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al crear paciente: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.get(
+    "/pacientes/{numero_documento}",
+    response_model=PacienteResponse,
+    tags=["👨‍⚕️ Pacientes"],
+    summary="Obtener paciente por documento"
+)
+def obtener_paciente(
+    numero_documento: str,
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """
+    Obtiene la historia clínica completa de un paciente.
+
+    **Control de acceso**:
+    - Staff (médico/admisionista/resultados/admin): acceso a cualquier paciente
+    - Paciente: solo acceso a su propia historia
+    """
+    # Verificar permisos
+    if not user_can_access_patient(current_user, numero_documento):
+        raise HTTPException(
+            status_code=403,
+            detail="No tiene permiso para acceder a este paciente"
+        )
 
     conn = None
     try:
@@ -305,11 +530,11 @@ def obtener_paciente(
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         cur.execute("""
-            SELECT id, documento_id, nombre, apellido,
-                   fecha_nacimiento, telefono, direccion, correo
-            FROM public.pacientes
-            WHERE id = %s
-        """, (paciente_id,))
+            SELECT * FROM public.pacientes
+            WHERE numero_documento = %s
+            ORDER BY id DESC
+            LIMIT 1
+        """, (numero_documento,))
 
         row = cur.fetchone()
         cur.close()
@@ -317,18 +542,378 @@ def obtener_paciente(
         if not row:
             raise HTTPException(
                 status_code=404,
-                detail=f"Paciente con ID {paciente_id} no encontrado"
+                detail=f"Paciente con documento {numero_documento} no encontrado"
             )
 
-        return PacienteResponse(
-            id=row['id'],
-            documento_id=row['documento_id'],
-            nombre=row['nombre'],
-            apellido=row['apellido'],
-            fecha_nacimiento=str(row['fecha_nacimiento']) if row['fecha_nacimiento'] else None,
-            telefono=row.get('telefono'),
-            direccion=row.get('direccion'),
-            correo=row.get('correo')
+        return PacienteResponse.from_db(dict(row))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener paciente: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
+
+# ==================== FIX 1: LISTAR PACIENTES CORREGIDO ====================
+@app.get(
+    "/pacientes",
+    response_model=List[PacienteResumen],
+    tags=["👨‍⚕️ Pacientes"],
+    summary="Listar pacientes (Staff)"
+)
+def listar_pacientes(
+    current_user: Usuario = Depends(require_staff()),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0)
+):
+    """
+    Lista todos los pacientes del sistema (vista resumida).
+
+    **Requiere rol**: Médico, Admisionista, Resultados o Admin
+
+    **FIX**: Calcula edad usando DATE_PART en lugar de columna
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # ✅ FIX: Calcular edad con DATE_PART, no usar columna inexistente
+        cur.execute("""
+            SELECT
+                id,
+                numero_documento,
+                CONCAT(primer_nombre, ' ', primer_apellido) as nombre_completo,
+                DATE_PART('year', AGE(fecha_nacimiento))::INTEGER as edad,
+                sexo,
+                tipo_atencion,
+                fecha_atencion,
+                nombre_profesional
+            FROM public.pacientes
+            WHERE activo = TRUE
+            ORDER BY fecha_registro DESC
+            LIMIT %s OFFSET %s
+        """, (limit, offset))
+
+        rows = cur.fetchall()
+        cur.close()
+
+        return [PacienteResumen(**dict(row)) for row in rows]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al listar pacientes: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.put(
+    "/pacientes/{numero_documento}",
+    response_model=PacienteResponse,
+    tags=["👨‍⚕️ Pacientes"],
+    summary="Actualizar paciente (Médico/Admin)"
+)
+def actualizar_paciente(
+    numero_documento: str,
+    paciente: PacienteUpdate,
+    current_user: Usuario = Depends(require_medico())
+):
+    """
+    Actualiza los datos de un paciente existente.
+
+    **Requiere rol**: Médico o Admin
+
+    Solo se actualizan los campos proporcionados (PATCH semántico).
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Verificar que el paciente exista
+        cur.execute(
+            "SELECT id FROM public.pacientes WHERE numero_documento = %s",
+            (numero_documento,)
+        )
+        if not cur.fetchone():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Paciente con documento {numero_documento} no encontrado"
+            )
+
+        # Construir query de actualización dinámicamente
+        updates = []
+        values = []
+
+        for field, value in paciente.dict(exclude_unset=True).items():
+            if value is not None:
+                updates.append(f"{field} = %s")
+                values.append(value)
+
+        if not updates:
+            raise HTTPException(status_code=400, detail="No hay campos para actualizar")
+
+        values.append(numero_documento)
+
+        query = f"""
+            UPDATE public.pacientes
+            SET {', '.join(updates)}, ultima_actualizacion = NOW()
+            WHERE numero_documento = %s
+            RETURNING *
+        """
+
+        cur.execute(query, values)
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+
+        return PacienteResponse.from_db(dict(row))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al actualizar paciente: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
+
+@app.delete(
+    "/pacientes/{numero_documento}",
+    tags=["👨‍⚕️ Pacientes"],
+    summary="Eliminar paciente (Admin)",
+    status_code=204
+)
+def eliminar_paciente(
+    numero_documento: str,
+    current_user: Usuario = Depends(require_admin())
+):
+    """
+    Realiza un borrado lógico del paciente (marca como inactivo).
+
+    **Requiere rol**: Admin
+
+    **Nota**: No se eliminan datos, solo se marca como inactivo.
+    """
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            UPDATE public.pacientes
+            SET activo = FALSE, ultima_actualizacion = NOW()
+            WHERE numero_documento = %s
+        """, (numero_documento,))
+
+        if cur.rowcount == 0:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Paciente con documento {numero_documento} no encontrado"
+            )
+
+        conn.commit()
+        cur.close()
+
+        return None
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al eliminar paciente: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
+
+# ==================== FIX 2: BÚSQUEDA CORREGIDA ====================
+@app.get(
+    "/pacientes/buscar/query",  # ✅ FIX: Cambiar ruta para evitar conflicto
+    response_model=List[PacienteResumen],
+    tags=["👨‍⚕️ Pacientes"],
+    summary="Buscar pacientes (Staff)"
+)
+def buscar_pacientes(
+    nombre: Optional[str] = Query(None, description="Nombre o apellido del paciente"),
+    documento: Optional[str] = Query(None, description="Número de documento"),
+    current_user: Usuario = Depends(require_staff()),
+    limit: int = Query(20, ge=1, le=100)
+):
+    """
+    Búsqueda de pacientes por nombre o documento.
+
+    **Requiere rol**: Médico, Admisionista, Resultados o Admin
+
+    **FIX**: Endpoint correcto con parámetros query
+
+    **Parámetros**:
+    - `nombre`: Busca en primer_nombre y primer_apellido (ILIKE)
+    - `documento`: Busca en numero_documento (ILIKE)
+
+    **Uso**:
+    ```
+    GET /pacientes/buscar/query?nombre=Juan
+    GET /pacientes/buscar/query?documento=12345
+    GET /pacientes/buscar/query?nombre=Maria&documento=678
+    ```
+    """
+    if not nombre and not documento:
+        raise HTTPException(
+            status_code=400,
+            detail="Debe proporcionar al menos un parámetro de búsqueda (nombre o documento)"
+        )
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        conditions = ["activo = TRUE"]
+        params = []
+
+        if nombre:
+            conditions.append("(primer_nombre ILIKE %s OR primer_apellido ILIKE %s)")
+            params.extend([f"%{nombre}%", f"%{nombre}%"])
+
+        if documento:
+            conditions.append("numero_documento ILIKE %s")
+            params.append(f"%{documento}%")
+
+        params.append(limit)
+
+        # ✅ FIX: Calcular edad correctamente
+        query = f"""
+            SELECT
+                id,
+                numero_documento,
+                CONCAT(primer_nombre, ' ', primer_apellido) as nombre_completo,
+                DATE_PART('year', AGE(fecha_nacimiento))::INTEGER as edad,
+                sexo,
+                tipo_atencion,
+                fecha_atencion,
+                nombre_profesional
+            FROM public.pacientes
+            WHERE {' AND '.join(conditions)}
+            ORDER BY fecha_registro DESC
+            LIMIT %s
+        """
+
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        cur.close()
+
+        return [PacienteResumen(**dict(row)) for row in rows]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en búsqueda: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
+
+
+# ==================== FIX 3: EXPORTACIÓN PDF CORREGIDA ====================
+from app.pdf_generator import generar_pdf_paciente
+
+@app.get(
+    "/pacientes/{numero_documento}/pdf",
+    tags=["📄 Exportación"],
+    summary="Exportar historia clínica a PDF",
+    response_class=StreamingResponse
+)
+def exportar_pdf(
+    numero_documento: str,
+    current_user: Usuario = Depends(get_current_active_user)
+):
+    """
+    Genera un PDF con la historia clínica completa del paciente.
+
+    **Control de acceso**:
+    - Staff (médico/admisionista/resultados/admin): cualquier paciente
+    - Paciente: solo su propia historia
+
+    **Retorna**: Archivo PDF para descarga
+
+    **FIX**: Sintaxis correcta de WeasyPrint
+    """
+    # Verificar permisos
+    if not user_can_access_patient(current_user, numero_documento):
+        raise HTTPException(
+            status_code=403,
+            detail="No tiene permiso para exportar este paciente"
+        )
+
+    conn = None
+    try:
+        # Obtener datos completos del paciente
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT * FROM public.pacientes
+            WHERE numero_documento = %s
+            ORDER BY id DESC
+            LIMIT 1
+        """, (numero_documento,))
+
+        row = cur.fetchone()
+        cur.close()
+
+        if not row:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Paciente con documento {numero_documento} no encontrado"
+            )
+
+        # Convertir a diccionario y preparar datos
+        paciente_dict = dict(row)
+
+        # Convertir fechas a string para el template
+        if paciente_dict.get('fecha_nacimiento'):
+            paciente_dict['fecha_nacimiento'] = str(paciente_dict['fecha_nacimiento'])
+        if paciente_dict.get('fecha_atencion'):
+            paciente_dict['fecha_atencion'] = str(paciente_dict['fecha_atencion'])
+        if paciente_dict.get('fecha_cierre'):
+            paciente_dict['fecha_cierre'] = str(paciente_dict['fecha_cierre'])
+
+        # Calcular edad e IMC para el PDF
+        if paciente_dict.get('fecha_nacimiento'):
+            from datetime import date
+            born = paciente_dict['fecha_nacimiento']
+            if isinstance(born, str):
+                from datetime import datetime
+                born = datetime.strptime(born, '%Y-%m-%d').date()
+            today = date.today()
+            paciente_dict['edad'] = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+
+        peso = paciente_dict.get('peso')
+        talla = paciente_dict.get('talla')
+        if peso and talla and talla > 0:
+            paciente_dict['imc'] = round(peso / ((talla/100) ** 2), 2)
+        else:
+            paciente_dict['imc'] = None
+
+        # ✅ FIX: Generar PDF con sintaxis correcta
+        pdf_content = generar_pdf_paciente(paciente_dict)
+
+        # Crear stream de respuesta
+        pdf_stream = io.BytesIO(pdf_content)
+        pdf_stream.seek(0)
+
+        # Nombre del archivo
+        nombre_archivo = f"HC_{numero_documento}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        return StreamingResponse(
+            pdf_stream,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{nombre_archivo}"'
+            }
         )
 
     except HTTPException:
@@ -336,123 +921,69 @@ def obtener_paciente(
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error al consultar la base de datos: {str(e)}"
+            detail=f"Error al generar PDF: {str(e)}"
         )
     finally:
         if conn:
             conn.close()
 
+
+# ==================== ESTADÍSTICAS (Admin) ====================
+
 @app.get(
-    "/pacientes",
-    response_model=list[PacienteResponse],
-    tags=["Pacientes"],
-    summary="📋 Listar Pacientes",
-    response_description="Lista de pacientes"
+    "/estadisticas",
+    tags=["📊 Estadísticas"],
+    summary="Estadísticas del sistema (Admin)"
 )
-def listar_pacientes(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    limit: int = 10
+def obtener_estadisticas(
+    current_user: Usuario = Depends(require_admin())
 ):
     """
-    ## Listar Todos los Pacientes
+    Obtiene estadísticas generales del sistema.
 
-    Retorna una lista paginada de pacientes.
-
-    **Requiere autenticación JWT** 🔒
-
-    ### Parámetros Query
-    - **limit** (opcional): Número máximo de resultados (default: 10)
-
-    ### Ejemplo de Request
-    ```bash
-    # Listar primeros 10 pacientes
-    curl http://localhost:8000/pacientes \\
-      -H "Authorization: Bearer <tu_token>"
-
-    # Listar primeros 5 pacientes
-    curl http://localhost:8000/pacientes?limit=5 \\
-      -H "Authorization: Bearer <tu_token>"
-    ```
-
-    ### Respuesta Exitosa
-    ```json
-    [
-      {
-        "id": 1,
-        "documento_id": "12345",
-        "nombre": "Juan",
-        "apellido": "Pérez",
-        "fecha_nacimiento": "1995-04-12",
-        "telefono": "3001234567",
-        "direccion": "Calle 123 #45-67",
-        "correo": "juanp@example.com"
-      },
-      {
-        "id": 2,
-        "documento_id": "67890",
-        "nombre": "María",
-        "apellido": "Gómez",
-        ...
-      }
-    ]
-    ```
-
-    ### Códigos de Respuesta
-    - **200:** Lista de pacientes retornada
-    - **401:** Token inválido o expirado
-    - **500:** Error de base de datos
-
-    ### Notas
-    - Los resultados se ordenan por ID ascendente
-    - En Semana 2 se añadirá paginación completa
+    **Requiere rol**: Admin
     """
-    # Validar token
-    token = credentials.credentials
-    SECRET_KEY = os.getenv("SECRET_KEY", "20240902734")
-    ALGORITHM = os.getenv("ALGORITHM", "HS256")
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expirado")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Token inválido")
-
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        cur.execute("""
-            SELECT id, documento_id, nombre, apellido,
-                   fecha_nacimiento, telefono, direccion, correo
-            FROM public.pacientes
-            ORDER BY id
-            LIMIT %s
-        """, (limit,))
+        # Total de pacientes
+        cur.execute("SELECT COUNT(*) as total FROM public.pacientes WHERE activo = TRUE")
+        total_pacientes = cur.fetchone()['total']
 
-        rows = cur.fetchall()
+        # Total de usuarios
+        cur.execute("SELECT COUNT(*) as total FROM public.usuarios WHERE activo = TRUE")
+        total_usuarios = cur.fetchone()['total']
+
+        # Distribución por tipo de atención
+        cur.execute("""
+            SELECT tipo_atencion, COUNT(*) as cantidad
+            FROM public.pacientes
+            WHERE activo = TRUE AND tipo_atencion IS NOT NULL
+            GROUP BY tipo_atencion
+            ORDER BY cantidad DESC
+        """)
+        tipos_atencion = cur.fetchall()
+
+        # Distribución Citus
+        cur.execute("SELECT * FROM citus_tables WHERE table_name::text = 'pacientes'")
+        distribucion = cur.fetchone()
+
         cur.close()
 
-        return [
-            PacienteResponse(
-                id=row['id'],
-                documento_id=row['documento_id'],
-                nombre=row['nombre'],
-                apellido=row['apellido'],
-                fecha_nacimiento=str(row['fecha_nacimiento']) if row['fecha_nacimiento'] else None,
-                telefono=row.get('telefono'),
-                direccion=row.get('direccion'),
-                correo=row.get('correo')
-            )
-            for row in rows
-        ]
+        return {
+            "total_pacientes": total_pacientes,
+            "total_usuarios": total_usuarios,
+            "tipos_atencion": [dict(row) for row in tipos_atencion],
+            "distribucion_citus": {
+                "shards": distribucion['shard_count'] if distribucion else 0,
+                "columna_distribucion": distribucion['distribution_column'] if distribucion else None
+            }
+        }
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al consultar la base de datos: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error al obtener estadísticas: {str(e)}")
     finally:
         if conn:
             conn.close()
