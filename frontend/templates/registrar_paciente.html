@@ -3,329 +3,622 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Paciente</title>
+    <title>Registrar Paciente - HCE</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
         body {
-            background-color: #eef3f7;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             font-family: "Segoe UI", sans-serif;
+            padding: 2rem 0;
         }
-
-        header {
-            background-color: #0078d7;
-            color: white;
-            padding: 1rem;
-            text-align: center;
-            font-weight: bold;
-            font-size: 1.4rem;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        }
-
-        .card {
-            max-width: 900px;
-            margin: auto;
-            margin-top: 30px;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        .form-container {
+            max-width: 1200px;
+            margin: 0 auto;
             background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
-
+        .section-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            margin: 2rem 0 1.5rem 0;
+            font-weight: 600;
+        }
+        .section-header:first-child {
+            margin-top: 0;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        .required::after {
+            content: " *";
+            color: red;
+        }
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 1rem 3rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
         .is-invalid {
-            border: 2px solid red !important;
+            border-color: #dc3545 !important;
         }
     </style>
 </head>
-
 <body>
 
-<header>🏥 SISTEMA HISTORIA CLÍNICA CON FHIR</header>
-
-<div class="container">
-
-    <div class="card">
-
-        <h3 class="text-center mb-4">Registrar Paciente</h3>
-
-        <form id="registroPacienteForm">
-
-            <div class="row">
-
-                <!-- Nombres y apellidos -->
-                <div class="col-md-6 mb-3">
-                    <label>Primer Nombre</label>
-                    <input type="text" id="primerNombre" class="form-control">
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label>Segundo Nombre</label>
-                    <input type="text" id="segundoNombre" class="form-control">
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label>Primer Apellido</label>
-                    <input type="text" id="primerApellido" class="form-control">
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label>Segundo Apellido</label>
-                    <input type="text" id="segundoApellido" class="form-control">
-                </div>
-
-                <!-- Tipo de documento -->
-                <div class="col-md-6 mb-3">
-                    <label>Tipo de Documento</label>
-                    <select id="tipoDocumento" class="form-select">
-                        <option value="">Seleccione</option>
-                        <option>Cédula</option>
-                        <option>Tarjeta de identidad</option>
-                        <option>Pasaporte</option>
-                        <option>Cédula de extranjería</option>
-                    </select>
-                </div>
-
-                <!-- Número documento -->
-                <div class="col-md-6 mb-3">
-                    <label>Número de Documento</label>
-                    <input type="number" id="numDocumento" class="form-control">
-                </div>
-
-                <!-- Sexo -->
-                <div class="col-md-6 mb-3">
-                    <label>Sexo</label>
-                    <select id="sexo" class="form-select">
-                        <option value="">Seleccione</option>
-                        <option>Masculino</option>
-                        <option>Femenino</option>
-                        <option>Otro</option>
-                    </select>
-                </div>
-
-                <!-- Grupo sanguíneo -->
-                <div class="col-md-6 mb-3">
-                    <label>Grupo Sanguíneo</label>
-                    <select id="grupo" class="form-select">
-                        <option value="">Seleccione</option>
-                        <option>O+</option><option>O-</option>
-                        <option>A+</option><option>A-</option>
-                        <option>B+</option><option>B-</option>
-                        <option>AB+</option><option>AB-</option>
-                    </select>
-                </div>
-
-                <!-- Departamento -->
-                <div class="col-md-6 mb-3">
-                    <label>Departamento</label>
-                    <select id="departamento" class="form-select"></select>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label>Municipio</label>
-                    <select id="municipio" class="form-select"></select>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label>Ocupación</label>
-                    <select id="ocupacion" class="form-select">
-                        <option value="">Seleccione</option>
-                        <option>Técnico</option>
-                        <option>Tecnólogo</option>
-                        <option>Profesional</option>
-                        <option>Practicante</option>
-                        <option>Independiente</option>
-                        <option>Desempleado</option>
-                    </select>
-                </div>
-
-                <!-- País -->
-                <div class="col-md-6 mb-3">
-                    <label>País</label>
-                    <select id="pais" class="form-select">
-                        <option value="">Seleccione</option>
-                        <option>Colombia</option>
-                        <option>Venezuela</option>
-                        <option>Ecuador</option>
-                        <option>Perú</option>
-                        <option>Otro</option>
-                    </select>
-                </div>
-
-                <!-- Contacto de emergencia -->
-                <div class="col-md-6 mb-3">
-                    <label>Contacto de emergencia</label>
-                    <input type="number" id="contactoEmergencia" class="form-control">
-                </div>
-
-                <!-- Teléfono -->
-                <div class="col-md-6 mb-3">
-                    <label>Teléfono</label>
-                    <input type="number" id="telefono" class="form-control">
-                </div>
-
-                <!-- Correo -->
-                <div class="col-md-6 mb-3">
-                    <label>Correo</label>
-                    <input type="email" id="correo" class="form-control">
-                </div>
-
+    <div class="container">
+        <div class="form-container">
+            
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <h2 class="fw-bold text-primary">📋 Registro de Nuevo Paciente</h2>
+                <p class="text-muted">Complete todos los campos obligatorios (*)</p>
             </div>
 
-            <button type="button" class="btn btn-primary w-100 mt-4" onclick="abrirConfirmacion()">
-                Terminar registro del paciente
-            </button>
+            <form id="formPaciente">
 
-        </form>
+                <!-- ==================== IDENTIFICACIÓN DEL PACIENTE ==================== -->
+                <div class="section-header">👤 DATOS DE IDENTIFICACIÓN DEL PACIENTE</div>
 
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Tipo de Documento</label>
+                        <select id="tipo_documento" class="form-select" required>
+                            <option value="">Seleccione...</option>
+                            <option value="CC">CC - Cédula de Ciudadanía</option>
+                            <option value="TI">TI - Tarjeta de Identidad</option>
+                            <option value="CE">CE - Cédula de Extranjería</option>
+                            <option value="PA">PA - Pasaporte</option>
+                            <option value="RC">RC - Registro Civil</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Número de Documento</label>
+                        <input type="text" id="numero_documento" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Primer Apellido</label>
+                        <input type="text" id="primer_apellido" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Segundo Apellido</label>
+                        <input type="text" id="segundo_apellido" class="form-control">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Primer Nombre</label>
+                        <input type="text" id="primer_nombre" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Segundo Nombre</label>
+                        <input type="text" id="segundo_nombre" class="form-control">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Fecha de Nacimiento</label>
+                        <input type="date" id="fecha_nacimiento" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label required">Sexo</label>
+                        <select id="sexo" class="form-select" required>
+                            <option value="">Seleccione...</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Género (identidad)</label>
+                        <input type="text" id="genero" class="form-control" placeholder="Opcional">
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Grupo Sanguíneo</label>
+                        <select id="grupo_sanguineo" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Factor RH</label>
+                        <select id="factor_rh" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="Positivo">Positivo</option>
+                            <option value="Negativo">Negativo</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Estado Civil</label>
+                        <select id="estado_civil" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="Soltero">Soltero</option>
+                            <option value="Casado">Casado</option>
+                            <option value="Union Libre">Unión Libre</option>
+                            <option value="Divorciado">Divorciado</option>
+                            <option value="Viudo">Viudo</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Ocupación</label>
+                        <input type="text" id="ocupacion" class="form-control">
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Dirección de Residencia</label>
+                        <input type="text" id="direccion_residencia" class="form-control">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Departamento</label>
+                        <select id="departamento" class="form-select">
+                            <option value="">Seleccione...</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Municipio</label>
+                        <select id="municipio" class="form-select">
+                            <option value="">Seleccione...</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="tel" id="telefono" class="form-control">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Celular</label>
+                        <input type="tel" id="celular" class="form-control">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Correo Electrónico</label>
+                        <input type="email" id="correo_electronico" class="form-control">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Entidad (EPS/ARL)</label>
+                        <input type="text" id="entidad" class="form-control">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Régimen de Afiliación</label>
+                        <select id="regimen_afiliacion" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="Contributivo">Contributivo</option>
+                            <option value="Subsidiado">Subsidiado</option>
+                            <option value="Especial">Especial</option>
+                            <option value="No afiliado">No afiliado</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Tipo de Usuario</label>
+                        <input type="text" id="tipo_usuario" class="form-control" placeholder="Ej: Cotizante, Beneficiario">
+                    </div>
+                </div>
+
+                <!-- ==================== DATOS DE ATENCIÓN ==================== -->
+                <div class="section-header">🏥 DATOS ADMINISTRATIVOS DE ATENCIÓN</div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Tipo de Atención</label>
+                        <select id="tipo_atencion" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="Urgencias">Urgencias</option>
+                            <option value="Consulta Externa">Consulta Externa</option>
+                            <option value="Hospitalizacion">Hospitalización</option>
+                            <option value="Cirugia">Cirugía</option>
+                            <option value="Procedimiento">Procedimiento</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Motivo de Consulta</label>
+                        <input type="text" id="motivo_consulta" class="form-control">
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Enfermedad Actual / Problema Actual</label>
+                        <textarea id="enfermedad_actual" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Antecedentes Personales</label>
+                        <textarea id="antecedentes_personales" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Antecedentes Familiares</label>
+                        <textarea id="antecedentes_familiares" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Alergias Conocidas</label>
+                        <textarea id="alergias_conocidas" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Hábitos</label>
+                        <textarea id="habitos" class="form-control" rows="2" placeholder="Alcohol, tabaco, drogas, alimentación, ejercicio..."></textarea>
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Medicamentos Actuales</label>
+                        <textarea id="medicamentos_actuales" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+
+                <!-- ==================== SIGNOS VITALES ==================== -->
+                <div class="section-header">💓 SIGNOS VITALES</div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Tensión Arterial</label>
+                        <input type="text" id="tension_arterial" class="form-control" placeholder="Ej: 120/80">
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Frecuencia Cardíaca</label>
+                        <input type="number" id="frecuencia_cardiaca" class="form-control" placeholder="lpm">
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Frecuencia Respiratoria</label>
+                        <input type="number" id="frecuencia_respiratoria" class="form-control" placeholder="rpm">
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Temperatura (°C)</label>
+                        <input type="number" step="0.1" id="temperatura" class="form-control" placeholder="36.5">
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Saturación O₂ (%)</label>
+                        <input type="number" id="saturacion_oxigeno" class="form-control" placeholder="98">
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Peso (kg)</label>
+                        <input type="number" step="0.1" id="peso" class="form-control">
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Talla (cm)</label>
+                        <input type="number" step="0.1" id="talla" class="form-control">
+                    </div>
+                </div>
+
+                <!-- ==================== EXAMEN Y DIAGNÓSTICO ==================== -->
+                <div class="section-header">🔬 EXAMEN FÍSICO Y DIAGNÓSTICO</div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Examen Físico General</label>
+                        <textarea id="examen_fisico_general" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Examen Físico por Sistemas</label>
+                        <textarea id="examen_fisico_sistemas" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Impresión Diagnóstica</label>
+                        <textarea id="impresion_diagnostica" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Códigos CIE-10</label>
+                        <input type="text" id="codigos_cie10" class="form-control" placeholder="Separados por comas">
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Conducta / Plan de Manejo</label>
+                        <textarea id="conducta_plan" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Recomendaciones al Paciente</label>
+                        <textarea id="recomendaciones" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Médicos Interconsultados</label>
+                        <input type="text" id="medicos_interconsultados" class="form-control">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Procedimientos Realizados</label>
+                        <input type="text" id="procedimientos_realizados" class="form-control">
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Resultados de Exámenes Paraclínicos</label>
+                        <textarea id="resultados_examenes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <!-- ==================== CIERRE Y SEGUIMIENTO ==================== -->
+                <div class="section-header">📊 CIERRE Y SEGUIMIENTO</div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Diagnóstico Definitivo</label>
+                        <textarea id="diagnostico_definitivo" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Evolución Médica</label>
+                        <textarea id="evolucion_medica" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Tratamiento Instaurado</label>
+                        <textarea id="tratamiento_instaurado" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Formulación Médica</label>
+                        <textarea id="formulacion_medica" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Educación al Paciente / Consejería</label>
+                        <textarea id="educacion_paciente" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Referencia o Contrarreferencia</label>
+                        <input type="text" id="referencia_contrarreferencia" class="form-control">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Estado de Egreso</label>
+                        <select id="estado_egreso" class="form-select">
+                            <option value="">Seleccione...</option>
+                            <option value="Mejorado">Mejorado</option>
+                            <option value="Igual">Igual</option>
+                            <option value="Empeorado">Empeorado</option>
+                            <option value="Fallecido">Fallecido</option>
+                            <option value="Remitido">Remitido</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ==================== DATOS DEL PROFESIONAL ==================== -->
+                <div class="section-header">👨‍⚕️ DATOS DEL PROFESIONAL</div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nombre del Profesional</label>
+                        <input type="text" id="nombre_profesional" class="form-control">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Tipo de Profesional</label>
+                        <input type="text" id="tipo_profesional" class="form-control" placeholder="Médico, Enfermero, etc.">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Registro Médico / Tarjeta Profesional</label>
+                        <input type="text" id="registro_medico" class="form-control">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Cargo / Servicio</label>
+                        <input type="text" id="cargo_servicio" class="form-control">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Responsable de Registro</label>
+                        <input type="text" id="responsable_registro" class="form-control">
+                    </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="text-center mt-4">
+                    <button type="button" class="btn btn-secondary me-3" onclick="window.history.back()">
+                        ← Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-submit">
+                        💾 Guardar Paciente
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
     </div>
-</div>
 
-<!-- CONFIRMAR REGISTRO -->
-<div class="modal fade" id="modalConfirmar" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-primary">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">Confirmar Registro</h5>
-      </div>
-      <div class="modal-body text-center">
-        ¿Desea guardar los datos del paciente?
-      </div>
-      <div class="modal-footer justify-content-center">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">No</button>
-        <button class="btn btn-primary" onclick="registrar()">Sí</button>
-      </div>
+    <!-- Modal Éxito -->
+    <div class="modal fade" id="modalExito" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">✅ Registro Exitoso</h5>
+                </div>
+                <div class="modal-body text-center">
+                    <h4>Paciente registrado correctamente</h4>
+                    <p>Documento: <strong id="docRegistrado"></strong></p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="window.location.href='medico.html'">Ir al Panel</button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<!-- REGISTRO EXITOSO -->
-<div class="modal fade" id="modalExito" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-success">
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title">Registro Exitoso</h5>
-      </div>
-      <div class="modal-body text-center">
-        <h4>🎉 Paciente registrado correctamente</h4>
-        <p>ID asignado:</p>
-        <h2 id="idGenerado" class="fw-bold text-success"></h2>
-      </div>
-    </div>
-  </div>
-</div>
+    <script src="../static/js/config.js"></script>
+    <script>
+        // ==================== INICIALIZACIÓN ====================
+        window.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                cargarDepartamentos();
+            }
+        });
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        // ==================== VERIFICAR AUTENTICACIÓN ====================
+        function checkAuth() {
+            const user = AUTH_UTILS.getUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            
+            if (!['medico', 'admisionista', 'admin'].includes(user.rol)) {
+                UI_UTILS.showAlert('Acceso denegado', 'danger');
+                window.location.href = 'login.html';
+                return false;
+            }
 
-<script>
-
-// -----------------------------
-// Cargar departamentos + municipios
-// -----------------------------
-
-let departamentosData = {};
-
-async function cargarDepartamentos() {
-    const res = await fetch("/departamentos.json");
-    departamentosData = await res.json();
-
-    const depSelect = document.getElementById("departamento");
-    depSelect.innerHTML = "<option value=''>Seleccione</option>";
-
-    Object.keys(departamentosData).forEach(dep => {
-        let op = document.createElement("option");
-        op.value = dep;
-        op.textContent = dep;
-        depSelect.appendChild(op);
-    });
-}
-
-document.getElementById("departamento").addEventListener("change", () => {
-    const municipioSelect = document.getElementById("municipio");
-    municipioSelect.innerHTML = "<option value=''>Seleccione</option>";
-
-    let selectedDep = document.getElementById("departamento").value;
-    if (!selectedDep) return;
-
-    departamentosData[selectedDep].forEach(m => {
-        let op = document.createElement("option");
-        op.value = m;
-        op.textContent = m;
-        municipioSelect.appendChild(op);
-    });
-});
-
-cargarDepartamentos();
-
-// -----------------------------
-// MODAL CONFIRMAR
-// -----------------------------
-
-function abrirConfirmacion() {
-    new bootstrap.Modal(document.getElementById("modalConfirmar")).show();
-}
-
-// -----------------------------
-// REGISTRAR PACIENTE
-// -----------------------------
-
-async function registrar() {
-
-    // Generar ID aleatorio
-    const idGenerado = Math.floor(Math.random() * (99999 - 10000 + 1)) + 10000;
-
-    const datos = {
-        id: idGenerado,
-        primerNombre: primerNombre.value.trim(),
-        segundoNombre: segundoNombre.value.trim(),
-        primerApellido: primerApellido.value.trim(),
-        segundoApellido: segundoApellido.value.trim(),
-        tipoDocumento: tipoDocumento.value,
-        numDocumento: numDocumento.value.trim(),
-        sexo: sexo.value,
-        grupo: grupo.value,
-        departamento: departamento.value,
-        municipio: municipio.value,
-        ocupacion: ocupacion.value,
-        pais: pais.value,
-        contactoEmergencia: contactoEmergencia.value.trim(),
-        telefono: telefono.value.trim(),
-        correo: correo.value.trim()
-    };
-
-    // Validación rápida
-    let valid = true;
-    Object.keys(datos).forEach(k => {
-        const campo = document.getElementById(k);
-        if (campo && campo.value.trim() === "") {
-            campo.classList.add("is-invalid");
-            valid = false;
+            return true;
         }
-    });
 
-    if (!valid) {
-        document.getElementById("modalConfirmar").classList.remove("show");
-        return;
-    }
+        // ==================== CARGAR DEPARTAMENTOS ====================
+        async function cargarDepartamentos() {
+            const departamentos = {
+                "Sucre": ["Sincelejo", "Corozal", "Sampués", "San Marcos"],
+                "Antioquia": ["Medellín", "Bello", "Itagüí", "Envigado"],
+                "Atlántico": ["Barranquilla", "Soledad", "Malambo"],
+                "Bolívar": ["Cartagena", "Magangué", "Turbaco"],
+                "Valle del Cauca": ["Cali", "Palmira", "Buenaventura"],
+                "Cundinamarca": ["Soacha", "Zipaquirá", "Facatativá"]
+            };
 
-    // Enviar al backend
-    await fetch("/guardar_paciente", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(datos)
-    });
+            const selectDep = document.getElementById('departamento');
+            const selectMun = document.getElementById('municipio');
 
-    document.getElementById("idGenerado").textContent = idGenerado;
+            Object.keys(departamentos).forEach(dep => {
+                const option = document.createElement('option');
+                option.value = dep;
+                option.textContent = dep;
+                selectDep.appendChild(option);
+            });
 
-    let modalExito = new bootstrap.Modal(document.getElementById("modalExito"));
-    modalExito.show();
+            selectDep.addEventListener('change', () => {
+                selectMun.innerHTML = '<option value="">Seleccione...</option>';
+                const dep = selectDep.value;
+                if (dep && departamentos[dep]) {
+                    departamentos[dep].forEach(mun => {
+                        const option = document.createElement('option');
+                        option.value = mun;
+                        option.textContent = mun;
+                        selectMun.appendChild(option);
+                    });
+                }
+            });
+        }
 
-    setTimeout(() => {
-        window.location.href = "{{ url_for('vista_medico') }}";
-    }, 3000);
-}
+        // ==================== REGISTRAR PACIENTE ====================
+        document.getElementById('formPaciente').addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-</script>
+            // Construir objeto con todos los campos
+            const datos = {
+                tipo_documento: document.getElementById('tipo_documento').value,
+                numero_documento: document.getElementById('numero_documento').value,
+                primer_apellido: document.getElementById('primer_apellido').value,
+                segundo_apellido: document.getElementById('segundo_apellido').value || null,
+                primer_nombre: document.getElementById('primer_nombre').value,
+                segundo_nombre: document.getElementById('segundo_nombre').value || null,
+                fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
+                sexo: document.getElementById('sexo').value,
+                genero: document.getElementById('genero').value || null,
+                grupo_sanguineo: document.getElementById('grupo_sanguineo').value || null,
+                factor_rh: document.getElementById('factor_rh').value || null,
+                estado_civil: document.getElementById('estado_civil').value || null,
+                direccion_residencia: document.getElementById('direccion_residencia').value || null,
+                municipio: document.getElementById('municipio').value || null,
+                departamento: document.getElementById('departamento').value || null,
+                telefono: document.getElementById('telefono').value || null,
+                celular: document.getElementById('celular').value || null,
+                correo_electronico: document.getElementById('correo_electronico').value || null,
+                ocupacion: document.getElementById('ocupacion').value || null,
+                entidad: document.getElementById('entidad').value || null,
+                regimen_afiliacion: document.getElementById('regimen_afiliacion').value || null,
+                tipo_usuario: document.getElementById('tipo_usuario').value || null,
+                tipo_atencion: document.getElementById('tipo_atencion').value || null,
+                motivo_consulta: document.getElementById('motivo_consulta').value || null,
+                enfermedad_actual: document.getElementById('enfermedad_actual').value || null,
+                antecedentes_personales: document.getElementById('antecedentes_personales').value || null,
+                antecedentes_familiares: document.getElementById('antecedentes_familiares').value || null,
+                alergias_conocidas: document.getElementById('alergias_conocidas').value || null,
+                habitos: document.getElementById('habitos').value || null,
+                medicamentos_actuales: document.getElementById('medicamentos_actuales').value || null,
+                tension_arterial: document.getElementById('tension_arterial').value || null,
+                frecuencia_cardiaca: parseInt(document.getElementById('frecuencia_cardiaca').value) || null,
+                frecuencia_respiratoria: parseInt(document.getElementById('frecuencia_respiratoria').value) || null,
+                temperatura: parseFloat(document.getElementById('temperatura').value) || null,
+                saturacion_oxigeno: parseInt(document.getElementById('saturacion_oxigeno').value) || null,
+                peso: parseFloat(document.getElementById('peso').value) || null,
+                talla: parseFloat(document.getElementById('talla').value) || null,
+                examen_fisico_general: document.getElementById('examen_fisico_general').value || null,
+                examen_fisico_sistemas: document.getElementById('examen_fisico_sistemas').value || null,
+                impresion_diagnostica: document.getElementById('impresion_diagnostica').value || null,
+                codigos_cie10: document.getElementById('codigos_cie10').value || null,
+                conducta_plan: document.getElementById('conducta_plan').value || null,
+                recomendaciones: document.getElementById('recomendaciones').value || null,
+                medicos_interconsultados: document.getElementById('medicos_interconsultados').value || null,
+                procedimientos_realizados: document.getElementById('procedimientos_realizados').value || null,
+                resultados_examenes: document.getElementById('resultados_examenes').value || null,
+                diagnostico_definitivo: document.getElementById('diagnostico_definitivo').value || null,
+                evolucion_medica: document.getElementById('evolucion_medica').value || null,
+                tratamiento_instaurado: document.getElementById('tratamiento_instaurado').value || null,
+                formulacion_medica: document.getElementById('formulacion_medica').value || null,
+                educacion_paciente: document.getElementById('educacion_paciente').value || null,
+                referencia_contrarreferencia: document.getElementById('referencia_contrarreferencia').value || null,
+                estado_egreso: document.getElementById('estado_egreso').value || null,
+                nombre_profesional: document.getElementById('nombre_profesional').value || null,
+                tipo_profesional: document.getElementById('tipo_profesional').value || null,
+                registro_medico: document.getElementById('registro_medico').value || null,
+                cargo_servicio: document.getElementById('cargo_servicio').value || null,
+                responsable_registro: document.getElementById('responsable_registro').value || null
+            };
 
+            try {
+                const resultado = await API_UTILS.post(ENDPOINTS.PACIENTES_CREATE, datos);
+                if (resultado) {
+                    document.getElementById('docRegistrado').textContent = resultado.numero_documento;
+                    const modal = new bootstrap.Modal(document.getElementById('modalExito'));
+                    modal.show();
+                }
+            } catch (error) {
+                UI_UTILS.showAlert(`Error al registrar: ${error.message}`, 'danger');
+            }
+        });
+    </script>
 </body>
 </html>

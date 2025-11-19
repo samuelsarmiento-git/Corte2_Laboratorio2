@@ -3,192 +3,351 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historia Clínica</title>
+    <title>Historia Clínica - HCE</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
-        body { background:#eef3f7; font-family:"Segoe UI"; }
-        header { background:#0078d7; color:white; padding:1rem; text-align:center; font-weight:700; }
-        .card { padding:1.5rem; border-radius:12px; }
-        .section-title { background:#0078d7; color:white; padding:6px 12px; border-radius:8px; margin-top:25px; }
-        .info-box { background:white; padding:12px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.15); }
-        .label { font-weight:bold; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: "Segoe UI", sans-serif;
+            padding: 2rem 0;
+        }
+        .historia-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .header-paciente {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .section-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            margin: 2rem 0 1rem 0;
+            font-weight: 600;
+        }
+        .info-row {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 250px;
+        }
+        .info-value {
+            color: #212529;
+            flex: 1;
+        }
+        .alert-alergias {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+        .btn-action {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
     </style>
 </head>
 <body>
 
-<header>📄 HISTORIA CLÍNICA DEL PACIENTE</header>
+    <div class="container">
+        <div class="historia-container">
 
-<div class="container mt-4">
-    <div class="card shadow">
-
-        <h3 class="text-center text-primary">
-            {{ paciente.primerNombre }} {{ paciente.primerApellido }} {{ paciente.segundoApellido }}
-        </h3>
-
-        <h5 class="text-center text-muted">ID Paciente: {{ paciente.id }}</h5>
-
-        <!-- ===================== -->
-        <!-- DATOS DEL PACIENTE -->
-        <!-- ===================== -->
-        <div class="section-title">👤 Datos del Paciente</div>
-
-        <div class="info-box">
-            <p><span class="label">Nombres:</span> {{ paciente.primerNombre }} {{ paciente.segundoNombre }}</p>
-            <p><span class="label">Apellidos:</span> {{ paciente.primerApellido }} {{ paciente.segundoApellido }}</p>
-            <p><span class="label">Edad:</span> {{ paciente.edad }}</p>
-            <p><span class="label">Género:</span> {{ paciente.sexo }}</p>
-            <p><span class="label">Ciudad:</span> {{ paciente.municipio }}</p>
-            <p><span class="label">Departamento:</span> {{ paciente.departamento }}</p>
-            <p><span class="label">Correo:</span> {{ paciente.correo }}</p>
-            <p><span class="label">Teléfono:</span> {{ paciente.telefono }}</p>
-            <p><span class="label">Ocupación:</span> {{ paciente.ocupacion }}</p>
-            <p><span class="label">EPS:</span> {{ paciente.eps }}</p>
-            <p><span class="label">Régimen:</span> {{ paciente.regimen }}</p>
-            <p><span class="label">Usuario:</span> {{ paciente.tipoUsuario }}</p>
-            <p><span class="label">Contacto emergencia:</span> {{ paciente.contactoEmergencia }}</p>
-            <p><span class="label">País:</span> {{ paciente.pais }}</p>
-        </div>
-
-        {% if historia %}
-        
-            <!-- ===================== -->
-            <!-- CONDICIÓN MÉDICA -->
-            <!-- ===================== -->
-            <div class="section-title">🩺 Condición Médica</div>
-            <div class="info-box">
-                <p><span class="label">Condición:</span> {{ historia.condicionMedica.condicion }}</p>
-                <p><span class="label">Estado clínico:</span> {{ historia.condicionMedica.estadoClinico }}</p>
-                <p><span class="label">Fecha inicio:</span> {{ historia.condicionMedica.fechaInicio }}</p>
-                <p><span class="label">Notas:</span> {{ historia.condicionMedica.notas }}</p>
+            <!-- Loading -->
+            <div id="loading" class="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-3 text-muted">Cargando historia clínica...</p>
             </div>
 
-            <!-- ===================== -->
-            <!-- ENCUENTRO -->
-            <!-- ===================== -->
-            <div class="section-title">🧾 Encuentro</div>
-            <div class="info-box">
-                <p><span class="label">Tipo:</span> {{ historia.encuentro.tipo }}</p>
-                <p><span class="label">Motivo:</span> {{ historia.encuentro.motivo }}</p>
-                <p><span class="label">Inicio:</span> {{ historia.encuentro.fechaInicio }}</p>
-                <p><span class="label">Fin:</span> {{ historia.encuentro.fechaFin }}</p>
+            <!-- Contenido -->
+            <div id="content" class="d-none">
+
+                <!-- Header -->
+                <div class="header-paciente">
+                    <h2 class="mb-2" id="nombrePaciente"></h2>
+                    <h5>Documento: <span id="documentoPaciente"></span></h5>
+                    <p class="mb-0">Historia Clínica Electrónica</p>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="text-end mb-3">
+                    <button class="btn btn-secondary me-2" onclick="window.history.back()">
+                        ← Volver
+                    </button>
+                    <button class="btn btn-action me-2" onclick="editarHistoria()">
+                        ✏️ Editar
+                    </button>
+                    <button class="btn btn-action" onclick="descargarPDF()">
+                        📄 Descargar PDF
+                    </button>
+                </div>
+
+                <!-- IDENTIFICACIÓN -->
+                <div class="section-title">👤 DATOS DE IDENTIFICACIÓN</div>
+                <div id="seccionIdentificacion"></div>
+
+                <!-- ATENCIÓN -->
+                <div class="section-title">🏥 DATOS DE ATENCIÓN</div>
+                <div id="seccionAtencion"></div>
+
+                <!-- ALERGIAS (destacado si existen) -->
+                <div id="seccionAlergias"></div>
+
+                <!-- ANTECEDENTES -->
+                <div class="section-title">📝 ANTECEDENTES</div>
+                <div id="seccionAntecedentes"></div>
+
+                <!-- SIGNOS VITALES -->
+                <div class="section-title">💓 SIGNOS VITALES</div>
+                <div id="seccionSignosVitales"></div>
+
+                <!-- EXAMEN FÍSICO -->
+                <div class="section-title">🔬 EXAMEN FÍSICO</div>
+                <div id="seccionExamen"></div>
+
+                <!-- DIAGNÓSTICO -->
+                <div class="section-title">📋 DIAGNÓSTICO</div>
+                <div id="seccionDiagnostico"></div>
+
+                <!-- TRATAMIENTO -->
+                <div class="section-title">💊 TRATAMIENTO</div>
+                <div id="seccionTratamiento"></div>
+
+                <!-- PROCEDIMIENTOS -->
+                <div class="section-title">🔬 PROCEDIMIENTOS Y RESULTADOS</div>
+                <div id="seccionProcedimientos"></div>
+
+                <!-- EVOLUCIÓN -->
+                <div class="section-title">📊 EVOLUCIÓN Y EGRESO</div>
+                <div id="seccionEvolucion"></div>
+
+                <!-- PROFESIONAL -->
+                <div class="section-title">👨‍⚕️ PROFESIONAL RESPONSABLE</div>
+                <div id="seccionProfesional"></div>
+
             </div>
 
-            <!-- ===================== -->
-            <!-- MEDICAMENTO -->
-            <!-- ===================== -->
-            <div class="section-title">💊 Medicamento</div>
-            <div class="info-box">
-                <p><span class="label">Nombre:</span> {{ historia.medicamento.nombre }}</p>
-                <p><span class="label">Dosis:</span> {{ historia.medicamento.dosisMg }}</p>
-                <p><span class="label">Frecuencia/día:</span> {{ historia.medicamento.frecuenciaDia }}</p>
-                <p><span class="label">Vía:</span> {{ historia.medicamento.via }}</p>
-                <p><span class="label">Duración:</span> {{ historia.medicamento.duracionDias }}</p>
-                <p><span class="label">Instrucciones:</span> {{ historia.medicamento.instrucciones }}</p>
+            <!-- Sin Datos -->
+            <div id="noData" class="d-none text-center py-5">
+                <div style="font-size: 5rem;">📋</div>
+                <h4 class="text-muted mt-3">Paciente no encontrado</h4>
             </div>
-
-            <!-- ===================== -->
-            <!-- OBSERVACIÓN -->
-            <!-- ===================== -->
-            <div class="section-title">📝 Observación</div>
-            <div class="info-box">
-                <p><span class="label">Descripción:</span> {{ historia.observacion.descripcion }}</p>
-                <p><span class="label">Valor:</span> {{ historia.observacion.valor }}</p>
-                <p><span class="label">Unidad:</span> {{ historia.observacion.unidad }}</p>
-                <p><span class="label">Fecha y hora:</span> {{ historia.observacion.fechaHora }}</p>
-                <p><span class="label">Dispositivo:</span> {{ historia.observacion.dispositivo }}</p>
-                <p><span class="label">Notas:</span> {{ historia.observacion.notas }}</p>
-            </div>
-
-        {% else %}
-
-            <div class="section-title">🩺 Condición Médica</div>
-            <p class="text-danger fw-bold">Aún no existe historia clínica registrada.</p>
-
-        {% endif %}
-
-        <!-- ===================== -->
-        <!-- BOTONES DE ACCIÓN -->
-        <!-- ===================== -->
-        <div class="d-flex justify-content-between mt-4">
-
-            <!-- Volver -->
-            <a href="{{ url_for('vista_medico') }}" class="btn btn-secondary px-4 py-2">
-                ⬅️ Volver
-            </a>
-
-            <!-- Editar -->
-            <a href="{{ url_for('editar_historia_clinica') }}?id={{ paciente.id }}"
-               class="btn btn-primary px-4 py-2">
-                ✏️ Editar datos
-            </a>
-
-            <!-- Imprimir -->
-            <button class="btn btn-danger px-4" onclick="abrirModalImprimir()">
-            🖨️ IMPRIMIR PDF
-            </button>
 
         </div>
-
     </div>
-</div>
 
+    <script src="../static/js/config.js"></script>
+    <script>
+        // ==================== INICIALIZACIÓN ====================
+        let documentoActual = null;
 
-<!-- ===================== -->
-<!-- MODAL CONFIRMAR IMPRESIÓN -->
-<!-- ===================== -->
-<div id="modalImprimir" class="modal" style="display:none;">
-    <div class="modal-content">
-        <h4>Confirmar impresión</h4>
-        <p>¿Desea generar la historia clínica en PDF?</p>
+        window.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                cargarHistoria();
+            }
+        });
 
-        <button class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="confirmarImpresion()">Sí, imprimir</button>
-    </div>
-</div>
+        // ==================== VERIFICAR AUTENTICACIÓN ====================
+        function checkAuth() {
+            return AUTH_UTILS.isAuthenticated();
+        }
 
-<style>
-.modal {
-    position: fixed;
-    top:0; left:0; right:0; bottom:0;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:rgba(0,0,0,0.5);
-    z-index:9999;
-}
+        // ==================== OBTENER DOCUMENTO DE URL ====================
+        function getDocumentoFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('documento');
+        }
 
-.modal-content{
-    background:white;
-    padding:20px;
-    border-radius:8px;
-    text-align:center;
-    width:300px;
-}
-</style>
+        // ==================== CARGAR HISTORIA ====================
+        async function cargarHistoria() {
+            documentoActual = getDocumentoFromURL();
 
+            if (!documentoActual) {
+                document.getElementById('loading').classList.add('d-none');
+                document.getElementById('noData').classList.remove('d-none');
+                return;
+            }
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+            try {
+                const paciente = await API_UTILS.get(ENDPOINTS.PACIENTES_DETAIL(documentoActual));
+                if (paciente) {
+                    mostrarHistoria(paciente);
+                } else {
+                    document.getElementById('loading').classList.add('d-none');
+                    document.getElementById('noData').classList.remove('d-none');
+                }
+            } catch (error) {
+                UI_UTILS.showAlert('Error al cargar la historia clínica', 'danger');
+            }
+        }
 
-<script>
-    const modalImprimir = new bootstrap.Modal(document.getElementById('modalImprimir'));
+        // ==================== MOSTRAR HISTORIA ====================
+        function mostrarHistoria(p) {
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('content').classList.remove('d-none');
 
-    function abrirModalImprimir() {
-    document.getElementById("modalImprimir").style.display = "flex";
-}
+            // Header
+            const nombreCompleto = `${p.primer_nombre || ''} ${p.segundo_nombre || ''} ${p.primer_apellido || ''} ${p.segundo_apellido || ''}`.trim();
+            document.getElementById('nombrePaciente').textContent = nombreCompleto;
+            document.getElementById('documentoPaciente').textContent = p.numero_documento;
 
-function cerrarModal() {
-    document.getElementById("modalImprimir").style.display = "none";
-}
+            // IDENTIFICACIÓN
+            document.getElementById('seccionIdentificacion').innerHTML = `
+                <div class="info-row"><div class="info-label">Tipo de Documento:</div><div class="info-value">${p.tipo_documento || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Número de Documento:</div><div class="info-value">${p.numero_documento}</div></div>
+                <div class="info-row"><div class="info-label">Nombres:</div><div class="info-value">${p.primer_nombre || ''} ${p.segundo_nombre || ''}</div></div>
+                <div class="info-row"><div class="info-label">Apellidos:</div><div class="info-value">${p.primer_apellido || ''} ${p.segundo_apellido || ''}</div></div>
+                <div class="info-row"><div class="info-label">Fecha de Nacimiento:</div><div class="info-value">${UI_UTILS.formatDate(p.fecha_nacimiento)}</div></div>
+                <div class="info-row"><div class="info-label">Edad:</div><div class="info-value">${p.edad || 'N/A'} años</div></div>
+                <div class="info-row"><div class="info-label">Sexo:</div><div class="info-value">${p.sexo || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Género:</div><div class="info-value">${p.genero || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Grupo Sanguíneo:</div><div class="info-value">${p.grupo_sanguineo || 'N/A'} ${p.factor_rh || ''}</div></div>
+                <div class="info-row"><div class="info-label">Estado Civil:</div><div class="info-value">${p.estado_civil || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Dirección:</div><div class="info-value">${p.direccion_residencia || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Municipio/Departamento:</div><div class="info-value">${p.municipio || 'N/A'}, ${p.departamento || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Teléfono:</div><div class="info-value">${p.telefono || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Celular:</div><div class="info-value">${p.celular || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Correo:</div><div class="info-value">${p.correo_electronico || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Ocupación:</div><div class="info-value">${p.ocupacion || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">EPS/ARL:</div><div class="info-value">${p.entidad || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Régimen:</div><div class="info-value">${p.regimen_afiliacion || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Tipo de Usuario:</div><div class="info-value">${p.tipo_usuario || 'N/A'}</div></div>
+            `;
 
-function confirmarImpresion() {
-    const id = "{{ paciente.id }}";
-    window.location.href = "/imprimir_historia?id=" + id;
-}
+            // ATENCIÓN
+            document.getElementById('seccionAtencion').innerHTML = `
+                <div class="info-row"><div class="info-label">Fecha de Atención:</div><div class="info-value">${UI_UTILS.formatDateTime(p.fecha_atencion)}</div></div>
+                <div class="info-row"><div class="info-label">Tipo de Atención:</div><div class="info-value">${p.tipo_atencion || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Motivo de Consulta:</div><div class="info-value">${p.motivo_consulta || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Enfermedad Actual:</div><div class="info-value">${p.enfermedad_actual || 'N/A'}</div></div>
+            `;
 
+            // ALERGIAS (destacadas)
+            if (p.alergias_conocidas) {
+                document.getElementById('seccionAlergias').innerHTML = `
+                    <div class="alert-alergias">
+                        <strong>⚠️ ALERGIAS CONOCIDAS:</strong> ${p.alergias_conocidas}
+                    </div>
+                `;
+            }
 
-</script>
+            // ANTECEDENTES
+            document.getElementById('seccionAntecedentes').innerHTML = `
+                <div class="info-row"><div class="info-label">Antecedentes Personales:</div><div class="info-value">${p.antecedentes_personales || 'Ninguno registrado'}</div></div>
+                <div class="info-row"><div class="info-label">Antecedentes Familiares:</div><div class="info-value">${p.antecedentes_familiares || 'Ninguno registrado'}</div></div>
+                <div class="info-row"><div class="info-label">Hábitos:</div><div class="info-value">${p.habitos || 'Ninguno registrado'}</div></div>
+                <div class="info-row"><div class="info-label">Medicamentos Actuales:</div><div class="info-value">${p.medicamentos_actuales || 'Ninguno'}</div></div>
+            `;
 
+            // SIGNOS VITALES
+            const imc = p.imc ? `${p.imc} kg/m²` : 'N/A';
+            document.getElementById('seccionSignosVitales').innerHTML = `
+                <div class="info-row"><div class="info-label">Tensión Arterial:</div><div class="info-value">${p.tension_arterial || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Frecuencia Cardíaca:</div><div class="info-value">${p.frecuencia_cardiaca || 'N/A'} lpm</div></div>
+                <div class="info-row"><div class="info-label">Frecuencia Respiratoria:</div><div class="info-value">${p.frecuencia_respiratoria || 'N/A'} rpm</div></div>
+                <div class="info-row"><div class="info-label">Temperatura:</div><div class="info-value">${p.temperatura || 'N/A'} °C</div></div>
+                <div class="info-row"><div class="info-label">Saturación O₂:</div><div class="info-value">${p.saturacion_oxigeno || 'N/A'} %</div></div>
+                <div class="info-row"><div class="info-label">Peso:</div><div class="info-value">${p.peso || 'N/A'} kg</div></div>
+                <div class="info-row"><div class="info-label">Talla:</div><div class="info-value">${p.talla || 'N/A'} cm</div></div>
+                <div class="info-row"><div class="info-label">IMC:</div><div class="info-value">${imc}</div></div>
+            `;
+
+            // EXAMEN FÍSICO
+            document.getElementById('seccionExamen').innerHTML = `
+                <div class="info-row"><div class="info-label">Examen Físico General:</div><div class="info-value">${p.examen_fisico_general || 'No registrado'}</div></div>
+                <div class="info-row"><div class="info-label">Examen por Sistemas:</div><div class="info-value">${p.examen_fisico_sistemas || 'No registrado'}</div></div>
+            `;
+
+            // DIAGNÓSTICO
+            document.getElementById('seccionDiagnostico').innerHTML = `
+                <div class="info-row"><div class="info-label">Impresión Diagnóstica:</div><div class="info-value">${p.impresion_diagnostica || 'No registrada'}</div></div>
+                <div class="info-row"><div class="info-label">Códigos CIE-10:</div><div class="info-value">${p.codigos_cie10 || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Diagnóstico Definitivo:</div><div class="info-value">${p.diagnostico_definitivo || 'Pendiente'}</div></div>
+                <div class="info-row"><div class="info-label">Conducta/Plan:</div><div class="info-value">${p.conducta_plan || 'No especificado'}</div></div>
+                <div class="info-row"><div class="info-label">Recomendaciones:</div><div class="info-value">${p.recomendaciones || 'Ninguna'}</div></div>
+            `;
+
+            // TRATAMIENTO
+            document.getElementById('seccionTratamiento').innerHTML = `
+                <div class="info-row"><div class="info-label">Tratamiento Instaurado:</div><div class="info-value">${p.tratamiento_instaurado || 'No especificado'}</div></div>
+                <div class="info-row"><div class="info-label">Formulación Médica:</div><div class="info-value">${p.formulacion_medica || 'Sin formulación'}</div></div>
+                <div class="info-row"><div class="info-label">Educación al Paciente:</div><div class="info-value">${p.educacion_paciente || 'No registrada'}</div></div>
+            `;
+
+            // PROCEDIMIENTOS
+            document.getElementById('seccionProcedimientos').innerHTML = `
+                <div class="info-row"><div class="info-label">Médicos Interconsultados:</div><div class="info-value">${p.medicos_interconsultados || 'Ninguno'}</div></div>
+                <div class="info-row"><div class="info-label">Procedimientos Realizados:</div><div class="info-value">${p.procedimientos_realizados || 'Ninguno'}</div></div>
+                <div class="info-row"><div class="info-label">Resultados de Exámenes:</div><div class="info-value">${p.resultados_examenes || 'Sin resultados'}</div></div>
+            `;
+
+            // EVOLUCIÓN
+            document.getElementById('seccionEvolucion').innerHTML = `
+                <div class="info-row"><div class="info-label">Evolución Médica:</div><div class="info-value">${p.evolucion_medica || 'No registrada'}</div></div>
+                <div class="info-row"><div class="info-label">Estado de Egreso:</div><div class="info-value">${p.estado_egreso || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Referencia/Contrarreferencia:</div><div class="info-value">${p.referencia_contrarreferencia || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Fecha de Cierre:</div><div class="info-value">${UI_UTILS.formatDateTime(p.fecha_cierre)}</div></div>
+            `;
+
+            // PROFESIONAL
+            document.getElementById('seccionProfesional').innerHTML = `
+                <div class="info-row"><div class="info-label">Nombre:</div><div class="info-value">${p.nombre_profesional || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Tipo:</div><div class="info-value">${p.tipo_profesional || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Registro Médico:</div><div class="info-value">${p.registro_medico || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Cargo/Servicio:</div><div class="info-value">${p.cargo_servicio || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Responsable de Registro:</div><div class="info-value">${p.responsable_registro || 'N/A'}</div></div>
+                <div class="info-row"><div class="info-label">Fecha de Registro:</div><div class="info-value">${UI_UTILS.formatDateTime(p.fecha_registro)}</div></div>
+            `;
+        }
+
+        // ==================== EDITAR HISTORIA ====================
+        function editarHistoria() {
+            window.location.href = `editar_historia_clinica.html?documento=${documentoActual}`;
+        }
+
+        // ==================== DESCARGAR PDF ====================
+        async function descargarPDF() {
+            try {
+                await API_UTILS.downloadFile(ENDPOINTS.PACIENTES_PDF(documentoActual), `HC_${documentoActual}.pdf`);
+                UI_UTILS.showAlert('PDF descargado exitosamente', 'success');
+            } catch (error) {
+                UI_UTILS.showAlert('Error al descargar el PDF', 'danger');
+            }
+        }
+    </script>
 </body>
 </html>

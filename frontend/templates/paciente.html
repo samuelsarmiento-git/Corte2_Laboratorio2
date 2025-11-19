@@ -1,14 +1,285 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Panel Médico</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Historia Clínica</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            font-family: "Segoe UI", sans-serif;
+            min-height: 100vh;
+        }
+        .navbar-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .navbar-custom .navbar-brand {
+            color: white;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        .card-main {
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            background: white;
+            margin-top: 2rem;
+            padding: 2rem;
+        }
+        .section-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            margin: 1.5rem 0 1rem 0;
+        }
+        .info-row {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            width: 200px;
+            display: inline-block;
+        }
+        .info-value {
+            color: #212529;
+        }
+        .btn-pdf {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        .btn-pdf:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+        .alert-info-custom {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 3rem;
+        }
+    </style>
 </head>
-<body class="bg-light">
-  <div class="container mt-5">
-    <h2>Bienvenido {{ usuario }} (Rol: {{ rol }})</h2>
-    <a href="{{ url_for('logout') }}" class="btn btn-danger mt-3">Cerrar sesión</a>
-  </div>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-custom">
+        <div class="container-fluid">
+            <span class="navbar-brand">🏥 Mi Historia Clínica</span>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3">👤 <span id="userName"></span></span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">Cerrar Sesión</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card-main">
+
+            <!-- Loading -->
+            <div id="loading" class="loading-spinner">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-3 text-muted">Cargando su historia clínica...</p>
+            </div>
+
+            <!-- Contenido -->
+            <div id="content" class="d-none">
+                
+                <!-- Header -->
+                <div class="text-center mb-4">
+                    <h2 class="text-primary fw-bold" id="patientName"></h2>
+                    <p class="text-muted">Documento: <span id="patientDoc"></span></p>
+                </div>
+
+                <!-- Alerta Info -->
+                <div class="alert alert-info-custom">
+                    <strong>ℹ️ Información:</strong> Esta es su historia clínica personal. Los datos aquí mostrados son confidenciales y están protegidos por la ley.
+                </div>
+
+                <!-- Datos Personales -->
+                <div class="section-title">👤 Datos Personales</div>
+                <div id="datosPersonales"></div>
+
+                <!-- Condición Médica -->
+                <div class="section-title">🩺 Condición Médica Actual</div>
+                <div id="condicionMedica"></div>
+
+                <!-- Encuentro -->
+                <div class="section-title">📋 Última Consulta</div>
+                <div id="encuentro"></div>
+
+                <!-- Medicamentos -->
+                <div class="section-title">💊 Medicación</div>
+                <div id="medicamentos"></div>
+
+                <!-- Observaciones -->
+                <div class="section-title">📝 Observaciones Médicas</div>
+                <div id="observaciones"></div>
+
+                <!-- Botones de Acción -->
+                <div class="text-center mt-4">
+                    <button class="btn btn-pdf" onclick="descargarPDF()">
+                        📄 Descargar Historia en PDF
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Sin Datos -->
+            <div id="noData" class="d-none text-center py-5">
+                <div style="font-size: 5rem;">📋</div>
+                <h4 class="text-muted mt-3">No hay historia clínica registrada</h4>
+                <p>Aún no se ha creado su historia clínica. Consulte con su médico.</p>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="../static/js/config.js"></script>
+    <script>
+        // ==================== INICIALIZACIÓN ====================
+        let currentDocument = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                cargarHistoria();
+            }
+        });
+
+        // ==================== VERIFICAR AUTENTICACIÓN ====================
+        function checkAuth() {
+            const user = AUTH_UTILS.getUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            
+            if (user.rol !== 'paciente') {
+                UI_UTILS.showAlert('Acceso denegado', 'danger');
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            document.getElementById('userName').textContent = user.nombres || user.username;
+            currentDocument = user.documento_vinculado;
+            return true;
+        }
+
+        // ==================== LOGOUT ====================
+        function logout() {
+            AUTH_UTILS.clearAuth();
+            window.location.href = 'login.html';
+        }
+
+        // ==================== CARGAR HISTORIA CLÍNICA ====================
+        async function cargarHistoria() {
+            if (!currentDocument) {
+                document.getElementById('loading').classList.add('d-none');
+                document.getElementById('noData').classList.remove('d-none');
+                return;
+            }
+
+            try {
+                const paciente = await API_UTILS.get(ENDPOINTS.PACIENTES_DETAIL(currentDocument));
+                if (paciente) {
+                    mostrarHistoria(paciente);
+                } else {
+                    document.getElementById('loading').classList.add('d-none');
+                    document.getElementById('noData').classList.remove('d-none');
+                }
+            } catch (error) {
+                UI_UTILS.showAlert('Error al cargar la historia clínica', 'danger');
+            }
+        }
+
+        // ==================== MOSTRAR HISTORIA ====================
+        function mostrarHistoria(paciente) {
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('content').classList.remove('d-none');
+
+            // Header
+            document.getElementById('patientName').textContent = 
+                `${paciente.primer_nombre || ''} ${paciente.segundo_nombre || ''} ${paciente.primer_apellido || ''} ${paciente.segundo_apellido || ''}`.trim();
+            document.getElementById('patientDoc').textContent = paciente.numero_documento;
+
+            // Datos Personales
+            const datosHTML = `
+                <div class="info-row"><span class="info-label">Tipo de Documento:</span><span class="info-value">${paciente.tipo_documento || 'N/A'}</span></div>
+                <div class="info-row"><span class="info-label">Número de Documento:</span><span class="info-value">${paciente.numero_documento}</span></div>
+                <div class="info-row"><span class="info-label">Fecha de Nacimiento:</span><span class="info-value">${UI_UTILS.formatDate(paciente.fecha_nacimiento)}</span></div>
+                <div class="info-row"><span class="info-label">Edad:</span><span class="info-value">${paciente.edad || 'N/A'} años</span></div>
+                <div class="info-row"><span class="info-label">Sexo:</span><span class="info-value">${paciente.sexo || 'N/A'}</span></div>
+                <div class="info-row"><span class="info-label">Grupo Sanguíneo:</span><span class="info-value">${paciente.grupo_sanguineo || 'N/A'}</span></div>
+                <div class="info-row"><span class="info-label">Dirección:</span><span class="info-value">${paciente.direccion_residencia || 'N/A'}</span></div>
+                <div class="info-row"><span class="info-label">Municipio:</span><span class="info-value">${paciente.municipio || 'N/A'}</span></div>
+                <div class="info-row"><span class="info-label">Teléfono:</span><span class="info-value">${paciente.telefono || 'N/A'}</span></div>
+                <div class="info-row"><span class="info-label">Correo:</span><span class="info-value">${paciente.correo_electronico || 'N/A'}</span></div>
+            `;
+            document.getElementById('datosPersonales').innerHTML = datosHTML;
+
+            // Condición Médica
+            const condicionHTML = paciente.impresion_diagnostica || paciente.diagnostico_definitivo ?
+                `<div class="info-row"><span class="info-label">Diagnóstico:</span><span class="info-value">${paciente.diagnostico_definitivo || paciente.impresion_diagnostica}</span></div>
+                 <div class="info-row"><span class="info-label">Estado:</span><span class="info-value">${paciente.estado_egreso || 'Activo'}</span></div>
+                 <div class="info-row"><span class="info-label">Alergias:</span><span class="info-value">${paciente.alergias_conocidas || 'Ninguna reportada'}</span></div>` :
+                `<p class="text-muted">No hay diagnósticos registrados</p>`;
+            document.getElementById('condicionMedica').innerHTML = condicionHTML;
+
+            // Encuentro
+            const encuentroHTML = paciente.tipo_atencion ?
+                `<div class="info-row"><span class="info-label">Tipo de Atención:</span><span class="info-value">${paciente.tipo_atencion}</span></div>
+                 <div class="info-row"><span class="info-label">Fecha:</span><span class="info-value">${UI_UTILS.formatDateTime(paciente.fecha_atencion)}</span></div>
+                 <div class="info-row"><span class="info-label">Motivo:</span><span class="info-value">${paciente.motivo_consulta || 'N/A'}</span></div>
+                 <div class="info-row"><span class="info-label">Profesional:</span><span class="info-value">${paciente.nombre_profesional || 'N/A'}</span></div>` :
+                `<p class="text-muted">No hay consultas registradas</p>`;
+            document.getElementById('encuentro').innerHTML = encuentroHTML;
+
+            // Medicamentos
+            const medicamentosHTML = paciente.medicamentos_actuales || paciente.formulacion_medica ?
+                `<div class="info-row"><span class="info-label">Medicación Actual:</span><span class="info-value">${paciente.medicamentos_actuales || paciente.formulacion_medica}</span></div>
+                 <div class="info-row"><span class="info-label">Tratamiento:</span><span class="info-value">${paciente.tratamiento_instaurado || 'N/A'}</span></div>` :
+                `<p class="text-muted">No hay medicamentos registrados</p>`;
+            document.getElementById('medicamentos').innerHTML = medicamentosHTML;
+
+            // Observaciones
+            const observacionesHTML = paciente.evolucion_medica || paciente.recomendaciones ?
+                `<div class="info-row"><span class="info-label">Evolución:</span><span class="info-value">${paciente.evolucion_medica || 'N/A'}</span></div>
+                 <div class="info-row"><span class="info-label">Recomendaciones:</span><span class="info-value">${paciente.recomendaciones || 'N/A'}</span></div>
+                 <div class="info-row"><span class="info-label">Educación:</span><span class="info-value">${paciente.educacion_paciente || 'N/A'}</span></div>` :
+                `<p class="text-muted">No hay observaciones registradas</p>`;
+            document.getElementById('observaciones').innerHTML = observacionesHTML;
+        }
+
+        // ==================== DESCARGAR PDF ====================
+        async function descargarPDF() {
+            try {
+                await API_UTILS.downloadFile(ENDPOINTS.PACIENTES_PDF(currentDocument), `Mi_Historia_Clinica_${currentDocument}.pdf`);
+                UI_UTILS.showAlert('PDF descargado exitosamente', 'success');
+            } catch (error) {
+                UI_UTILS.showAlert('Error al generar el PDF', 'danger');
+            }
+        }
+    </script>
 </body>
 </html>
