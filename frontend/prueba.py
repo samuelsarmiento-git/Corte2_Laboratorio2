@@ -1,262 +1,286 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-import json, os, random
-from flask import send_file
-import reportlab
+#!/usr/bin/env python3
+"""
+prueba.py - Servidor Flask para Frontend
+📌 Ubicación: frontend/prueba.py
 
-app = Flask(__name__)
-app.secret_key = "clave_secreta_para_pruebas"
+Sirve archivos estáticos HTML del frontend y proporciona
+conexión con la API FastAPI en el backend.
 
-# === RUTAS DE ARCHIVOS JSON ===
-BASE_DIR = os.path.dirname(__file__)
-REGISTROS_PATH = os.path.join(BASE_DIR, "registros.json")
-PACIENTES_PATH = os.path.join(BASE_DIR, "pacientes.json")
-HISTORIAS_PATH = os.path.join(BASE_DIR, "historias_clinicas.json")
+Uso:
+    python3 prueba.py
+    
+Luego abrir en navegador:
+    http://localhost:5000/login.html
+"""
 
+import os
+import sys
+from pathlib import Path
+from flask import Flask, send_from_directory, render_template_string, jsonify
+from flask_cors import CORS
+import logging
 
-# === FUNCIONES AUXILIARES ===
-def cargar_json(path):
-    """Lee un JSON y siempre devuelve una lista válida."""
-    if not os.path.exists(path):
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump([], f)
+# ==================== CONFIGURACIÓN BÁSICA ====================
 
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            if isinstance(data, list):
-                return data
-            return []
-    except:
-        return []
+# Configurar rutas
+BASE_DIR = Path(__file__).parent
+TEMPLATES_DIR = BASE_DIR / 'templates'
+STATIC_DIR = BASE_DIR / 'static'
 
+# Crear aplicación Flask
+app = Flask(__name__, 
+    template_folder=str(TEMPLATES_DIR),
+    static_folder=str(STATIC_DIR),
+    static_url_path='/static'
+)
 
-def guardar_json(path, data):
-    """Guarda en JSON asegurando formato correcto."""
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+# Configurar CORS
+CORS(app)
 
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-# =====================================================
-#                      LOGIN
-# =====================================================
-@app.route("/")
-def home():
-    if "usuario" not in session:
-        return redirect(url_for("login"))
-    return redirect(url_for(session["rol"]))
+# ==================== VALIDACIONES INICIALES ====================
 
+def validar_estructura():
+    """Valida que la estructura de carpetas sea correcta"""
+    if not TEMPLATES_DIR.exists():
+        logger.warning(f"⚠️  Directorio templates no existe: {TEMPLATES_DIR}")
+        logger.info("📁 Creando directorio...")
+        TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+    
+    if not STATIC_DIR.exists():
+        logger.warning(f"⚠️  Directorio static no existe: {STATIC_DIR}")
+        logger.info("📁 Creando directorio...")
+        STATIC_DIR.mkdir(parents=True, exist_ok=True)
+        (STATIC_DIR / 'js').mkdir(exist_ok=True)
+        (STATIC_DIR / 'css').mkdir(exist_ok=True)
+        (STATIC_DIR / 'img').mkdir(exist_ok=True)
 
-@app.route("/login", methods=["GET", "POST"])
+# ==================== RUTAS PRINCIPALES ====================
+
+@app.route('/')
+def index():
+    """Ruta raíz - redirige al login"""
+    logger.info("📍 Acceso a raíz - redirigiendo a login")
+    return send_from_directory(TEMPLATES_DIR, 'login.html')
+
+@app.route('/login.html')
 def login():
-    if request.method == "POST":
-        usuario = request.form["usuario"]
-        contraseña = request.form["contraseña"]
+    """Página de inicio de sesión"""
+    logger.info("🔐 Cargando login.html")
+    return send_from_directory(TEMPLATES_DIR, 'login.html')
 
-        registros = cargar_json(REGISTROS_PATH)
-        user = next((u for u in registros if u["usuario"] == usuario and u["contraseña"] == contraseña), None)
+@app.route('/<filename>.html')
+def serve_html(filename):
+    """Sirve archivos HTML desde templates"""
+    try:
+        filepath = TEMPLATES_DIR / f"{filename}.html"
+        
+        if not filepath.exists():
+            logger.warning(f"❌ Archivo no encontrado: {filepath}")
+            return "Archivo no encontrado", 404
+        
+        logger.info(f"📄 Sirviendo: {filename}.html")
+        return send_from_directory(TEMPLATES_DIR, f"{filename}.html")
+        
+    except Exception as e:
+        logger.error(f"❌ Error sirviendo {filename}.html: {e}")
+        return f"Error: {str(e)}", 500
 
-        if user:
-            session["usuario"] = user["usuario"]
-            session["rol"] = user["rol"]
-            flash(f"Bienvenido {user['usuario']} ({user['rol']})", "success")
-            return redirect(url_for(user["rol"]))
-        else:
-            flash("Usuario o contraseña incorrectos.", "danger")
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """Sirve archivos estáticos (CSS, JS, imágenes)"""
+    try:
+        logger.debug(f"📦 Sirviendo estático: {filename}")
+        return send_from_directory(STATIC_DIR, filename)
+    except Exception as e:
+        logger.warning(f"⚠️  No se encontró estático: {filename}")
+        return "Archivo no encontrado", 404
 
-    return render_template("login.html")
+@app.route('/api/config')
+def get_config():
+    """Retorna configuración del frontend (para validar conexiones)"""
+    return jsonify({
+        'frontend': {
+            'version': '2.0.0',
+            'base_url': 'http://localhost:5000',
+            'templates': list(TEMPLATES_DIR.glob('*.html'))
+        },
+        'backend': {
+            'api_url': 'http://192.168.49.2:30800',
+            'endpoints': {
+                'health': '/health',
+                'login': '/token',
+                'pacientes': '/pacientes'
+            }
+        }
+    })
 
+# ==================== MANEJO DE ERRORES ====================
 
-@app.route("/logout")
-def logout():
-    session.clear()
-    flash("Sesión cerrada correctamente.", "info")
-    return redirect(url_for("login"))
+@app.errorhandler(404)
+def not_found(error):
+    """Manejo de error 404"""
+    logger.warning(f"404 - Recurso no encontrado: {error}")
+    return render_template_string('''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>404 - No Encontrado</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                text-align: center;
+                padding: 50px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .container {
+                background: white;
+                color: #333;
+                padding: 2rem;
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            }
+            h1 { color: #e74c3c; font-size: 3rem; margin: 0; }
+            p { color: #666; margin: 1rem 0; }
+            a {
+                display: inline-block;
+                background: #667eea;
+                color: white;
+                padding: 0.75rem 2rem;
+                border-radius: 8px;
+                text-decoration: none;
+                margin-top: 1rem;
+            }
+            a:hover { background: #764ba2; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>404</h1>
+            <p>La página que buscas no existe.</p>
+            <a href="/">← Volver al inicio</a>
+        </div>
+    </body>
+    </html>
+    '''), 404
 
+@app.errorhandler(500)
+def server_error(error):
+    """Manejo de error 500"""
+    logger.error(f"500 - Error del servidor: {error}")
+    return render_template_string('''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>500 - Error del Servidor</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                text-align: center;
+                padding: 50px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .container {
+                background: white;
+                color: #333;
+                padding: 2rem;
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            }
+            h1 { color: #e74c3c; font-size: 3rem; margin: 0; }
+            p { color: #666; margin: 1rem 0; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>500</h1>
+            <p>Error interno del servidor.</p>
+        </div>
+    </body>
+    </html>
+    '''), 500
 
-# =====================================================
-#            REGISTRO DE USUARIOS
-# =====================================================
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        data = request.get_json()
-        registros = cargar_json(REGISTROS_PATH)
+# ==================== INICIALIZACIÓN ====================
 
-        if any(u["usuario"] == data["usuario"] for u in registros):
-            return jsonify({"status": "error", "msg": "El usuario ya existe."}), 400
+def mostrar_informacion():
+    """Muestra información de inicio"""
+    print("\n" + "="*70)
+    print("🏥 FRONTEND - SISTEMA DE HISTORIA CLÍNICA")
+    print("="*70)
+    
+    print(f"""
+📂 Configuración:
+   • Base: {BASE_DIR}
+   • Templates: {TEMPLATES_DIR}
+   • Estáticos: {STATIC_DIR}
 
-        registros.append(data)
-        guardar_json(REGISTROS_PATH, registros)
-        return jsonify({"status": "ok"}), 200
+🌐 URLs disponibles:
+   • http://localhost:5000/              (Raíz → Login)
+   • http://localhost:5000/login.html    (Login)
+   • http://localhost:5000/medico.html   (Panel Médico)
+   • http://localhost:5000/paciente.html (Panel Paciente)
+   • http://localhost:5000/admisionista.html (Panel Admisionista)
+   • http://localhost:5000/panel_admin.html (Panel Admin)
+   • http://localhost:5000/gestionar_usuarios.html (Gestion de Usuarios)
+   • http://localhost:5000/reportes.html (Reportes)
+   • http://localhost:5000/static/       (Recursos)
 
-    return render_template("register.html")
+🔗 Backend (FastAPI):
+   • URL: http://192.168.49.2:30800
+   • Health: http://192.168.49.2:30800/health
+   • Docs: http://192.168.49.2:30800/docs
 
+⚙️  Configuración:
+   • DEBUG: False
+   • HOST: 0.0.0.0
+   • PORT: 5000
+   • CORS: Habilitado
 
-# =====================================================
-#                 PANEL MÉDICO
-# =====================================================
-@app.route("/medico")
-def medico():
-    if session.get("rol") != "medico":
-        flash("Acceso denegado.", "danger")
-        return redirect(url_for("login"))
-    return redirect(url_for("vista_medico"))
+📖 Comandos útiles:
+   • Ver config: http://localhost:5000/api/config
+   • Probar conexión: curl http://localhost:5000/health
 
+✅ Servidor listo. Presiona Ctrl+C para detener.
+""")
+    print("="*70 + "\n")
 
-@app.route("/vista_medico")
-def vista_medico():
-    if session.get("rol") != "medico":
-        flash("Acceso denegado.", "danger")
-        return redirect(url_for("login"))
-
-    pacientes = cargar_json(PACIENTES_PATH)
-    usuario = session.get("usuario")
-
-    conteo = sum(1 for p in pacientes if p.get("medico") == usuario)
-
-    return render_template("vista_medico.html", usuario=usuario, conteo=conteo)
-
-
-# =====================================================
-#       REGISTRO DE PACIENTE
-# =====================================================
-@app.route("/registrar_paciente")
-def registrar_paciente():
-    if session.get("rol") != "medico":
-        flash("Acceso denegado.", "danger")
-        return redirect(url_for("login"))
-    return render_template("registrar_paciente.html", usuario=session.get("usuario"))
-
-
-@app.route("/guardar_paciente", methods=["POST"])
-def guardar_paciente():
-    data = request.get_json()
-
-    data["medico"] = session.get("usuario")
-
-    pacientes = cargar_json(PACIENTES_PATH)
-    pacientes.append(data)
-    guardar_json(PACIENTES_PATH, pacientes)
-
-    return jsonify({"mensaje": "Paciente guardado correctamente"})
-
-
-# =====================================================
-#                VER IDS PACIENTES
-# =====================================================
-@app.route("/ver_ids_pacientes")
-def ver_ids_pacientes():
-    if session.get("rol") != "medico":
-        flash("Acceso denegado.", "danger")
-        return redirect(url_for("login"))
-
-    pacientes = cargar_json(PACIENTES_PATH)
-    usuario = session.get("usuario")
-
-    lista = [p for p in pacientes if p.get("medico") == usuario]
-
-    return render_template("ver_ids_pacientes.html", pacientes=lista, usuario=usuario)
-
-
-# API json
-@app.route("/pacientes.json")
-def pacientes_json():
-    return jsonify(cargar_json(PACIENTES_PATH))
-
-
-# =====================================================
-#             VER HISTORIA CLÍNICA
-# =====================================================
-@app.route("/ver_historia_clinica")
-def ver_historia_clinica():
-    id_paciente = request.args.get("id") 
-
-    pacientes = cargar_json(PACIENTES_PATH)
-    paciente = next((p for p in pacientes if str(p["id"]) == str(id_paciente)), None)
-
-    if not paciente:
-        return "Paciente no encontrado", 404
-
-    historias = cargar_json(HISTORIAS_PATH)
-    historia = next((h for h in historias if str(h["idPaciente"]) == str(id_paciente)), None)
-
-    return render_template("ver_historia_clinica.html",
-                           paciente=paciente,
-                           historia=historia)
-
-
-# =====================================================
-#             EDITAR HISTORIA CLÍNICA
-# =====================================================
-@app.route("/editar_historia_clinica")
-def editar_historia_clinica():
-    if session.get("rol") != "medico":
-        flash("Acceso denegado.", "danger")
-        return redirect(url_for("login"))
-
-    id_paciente = request.args.get("id")
-
-    pacientes = cargar_json(PACIENTES_PATH)
-    paciente = next((p for p in pacientes if str(p["id"]) == str(id_paciente)), None)
-
-    historias = cargar_json(HISTORIAS_PATH)
-    historia = next((h for h in historias if str(h["idPaciente"]) == str(id_paciente)), None)
-
-    return render_template("editar_historia_clinica.html",
-                           paciente=paciente,
-                           historia=historia)
-
-
-# =====================================================
-#        GUARDAR HISTORIA CLÍNICA
-# =====================================================
-@app.route("/guardar_historia_clinica", methods=["POST"])
-def guardar_historia_clinica():
-    datos = request.get_json()
-
-    historias = cargar_json(HISTORIAS_PATH)
-
-    existente = next((h for h in historias if str(h["idPaciente"]) == str(datos["idPaciente"])), None)
-    if existente:
-        historias.remove(existente)
-
-    historias.append(datos)
-    guardar_json(HISTORIAS_PATH, historias)
-
-    return jsonify({"status": "ok"})
-
-# =====================================================
-#             IMPRIMIR PDF
-# =====================================================
-@app.route("/imprimir_historia")
-def imprimir_historia():
-    id_paciente = request.args.get("id")
-
-    pacientes = cargar_json(PACIENTES_PATH)
-    historias = cargar_json(HISTORIAS_PATH)
-
-    paciente = next((p for p in pacientes if str(p["id"]) == str(id_paciente)), None)
-    historia = next((h for h in historias if str(h["idPaciente"]) == str(id_paciente)), None)
-
-    if not paciente:
-        return "Paciente no encontrado", 404
-
-    # Ruta correcta al logo en static
-    logo_path = url_for("static", filename="img/logo_medico.png")
-
-    return render_template(
-        "historia_pdf.html",
-        paciente=paciente,
-        historia=historia,
-        logo_path=logo_path
-    )
-
-
-
-
-
-# =====================================================
-#                    MAIN
-# =====================================================
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    # Validar estructura
+    validar_estructura()
+    
+    # Mostrar información
+    mostrar_informacion()
+    
+    try:
+        # Iniciar servidor
+        app.run(
+            host='0.0.0.0',
+            port=5000,
+            debug=False,
+            use_reloader=True,
+            threaded=True
+        )
+    except KeyboardInterrupt:
+        print("\n\n🛑 Servidor detenido por usuario.")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"❌ Error fatal: {e}")
+        sys.exit(1)

@@ -12,7 +12,6 @@
         "num_doc": "1189533727",
         "tarjeta": "11472348596"
     },
-    
     {
         "usuario": "samuel medico",
         "contraseña": "matias",
@@ -25,5 +24,18 @@
         "tipoID": "Cédula",
         "numID": "1193077296",
         "tarjetaProfesional": "1142103658"
+    },
+    {
+        "usuario": "Dr Juancho",
+        "contraseña": "persona4",
+        "rol": "medico",
+        "medNombre": "juan",
+        "medApellidos": "florez",
+        "medTipoProfesional": "General",
+        "medTelefono": "3114272836",
+        "medCorreo": "juan_medicoEPS@gmail.com",
+        "medTipoID": "Cédula",
+        "medNumID": "11934275232",
+        "medTarjetaProf": "1100485006958"
     }
 ]
