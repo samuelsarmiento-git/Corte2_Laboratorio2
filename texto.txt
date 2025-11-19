@@ -1,0 +1,124 @@
+Arquitectura y Diseño de Sistemas Distribuidos Seguros para la Gestión de Historias Clínicas Electrónicas mediante Middleware y Estándares HL7
+un sistema distribuido de historia clínica electrónica que integre una base de datos fragmentada con PostgreSQL + Citus, un middleware en Python (FastAPI) desplegado sobre Kubernetes (Minikube), cuatro interfaces gráficas por rol, y una capa de seguridad OAuth2 con JWT que permita acceder al sistema desde cualquier dispositivo y exportar historias clínicas en PDF.
+
+
+Objetivos Específicos
+Desplegar un clúster distribuido de PostgreSQL + Citus en Kubernetes.
+Implementar un middleware en Python (FastAPI) que gestione la comunicación con la base distribuida.
+Diseñar cuatro interfaces gráficas interactivas según el rol del usuario.
+Integrar autenticación OAuth2 con JWT y autorización por roles.
+Habilitar la descarga segura de historias clínicas en PDF desde dispositivos externos.
+Documentar todo el sistema con arquitectura, flujo de datos, decisiones técnicas y pruebas.
+Roles del equipo (en parejas)
+Rol
+Responsabilidades clave
+🧠 Backend & DevSecOps
+- Configurar Citus en Minikube
+- Crear el middleware y la API REST
+- Implementar OAuth2 + JWT
+- Contenerizar y desplegar la app en Kubernetes
+🎨 Frontend & UX
+- Diseñar las 4 interfaces HTML/Jinja2
+- Integrar autenticación por rol en las vistas
+- Crear flujo de usuario seguro
+- Integrar descarga en PDF desde frontend Ambos deben participar en la documentación y sustentación técnica.
+
+Fase 1 – : Infraestructura y Middleware Base (40%)
+📌 Objetivo: Tener la base de datos distribuida operativa, el middleware conectado y un primer endpoint protegido.
+Entregable
+Descripción
+Peso
+Validación
+🗄️ Infraestructura Citus
+Coordinador + 2 workers funcionando en Minikube con tabla distribuida por documento_id.
+10%
+kubectl get pods y SELECT * FROM usuario; funcional
+🐍 Middleware conectado
+Conexión desde FastAPI a Citus ejecutando consultas distribuidas.
+10%
+Endpoint /paciente/{id} funcionando
+🐳 Dockerfile y requirements
+Imagen funcional con psycopg2, FastAPI y dependencias instaladas.
+5%
+Imagen middleware-citus:1.0 construida en Minikube
+🔐 Seguridad base
+Endpoint protegido con OAuth2 y generación de tokens JWT.
+15%
+Acceso solo con token a /paciente/{id}
+
+
+
+
+
+
+
+Fase 2 – : Interfaces, Seguridad Completa y Exportación (60%)
+📌 Objetivo: Terminar el sistema con roles, autenticación completa, interfaces gráficas y descarga segura desde cualquier dispositivo.
+Entregable
+Descripción
+Peso
+Validación
+🧑‍⚕️ Interfaces completas
+Cuatro vistas funcionales: paciente, admisionista, médico y resultados.
+15%
+HTML/Jinja2 sirviendo desde FastAPI
+🔐 Autenticación completa
+OAuth2 + JWT con inicio de sesión, registro y autorización por rol.
+15%
+/login y /logout funcionales
+📱 Acceso remoto seguro
+Middleware accesible desde la red local y dispositivos móviles.
+10%
+Acceso desde celular o tablet en misma red
+📄 Exportación PDF segura
+Descarga de historia clínica protegida por token JWT.
+10%
+Ruta /exportar_pdf/{id} protegida y funcional
+📘 Documentación técnica
+Diagrama de arquitectura, flujo de autenticación, decisiones de diseño y capturas.
+10%
+Documento entregado en .pdf o .docx
+
+Requisitos técnicos mínimos
+Base de datos: PostgreSQL + Citus
+Backend: Python + FastAPI
+Seguridad: OAuth2 + JWT
+Infraestructura: Kubernetes (Minikube)
+Frontend: HTML + Jinja2
+Contenedores: Docker
+PDF: WeasyPrint
+Control de versiones: Git / GitHub
+
+
+Flujo de Seguridad – OAuth2 + JWT
+/login: Usuario se autentica → recibe un JWT.
+/paciente/{id}: Acceso permitido solo si se envía el token en el header.
+/exportar_pdf/{id}: Ruta protegida; sin token no hay descarga.
+Roles:
+🩺 Médico → Puede registrar observaciones.
+ Admisionista → Gestiona ingresos.
+Paciente → Solo consulta.
+Resultados → Puede exportar en PDF.
+
+
+Acceso desde red local (para celular o tablet)
+Exponer el servicio FastAPI con un NodePort o Ingress.
+Obtener la IP del clúster
+Bonus opcional (+10%)
+Implementar autenticación multifactor (MFA).
+Integrar Keycloak u otro Identity Provider.
+Añadir logging de seguridad y auditoría de accesos.
+
+
+
+Recomendaciones para los equipos
+Dividan las tareas desde el día 1 según los roles.
+Documenten cada decisión técnica.
+Hagan pruebas en local antes de desplegar en Kubernetes.
+Validar la seguridad con herramientas como Postman o curl.
+Suban el repositorio a GitHub con commits organizados por fases.
+Entregables Finales
+📁 Código completo del proyecto.
+📦 Imagen Docker funcional (middleware-citus:1.0).
+☁️ Manifiestos Kubernetes (.yaml).
+🧪 Capturas y pruebas desde dispositivo móvil.
